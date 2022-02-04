@@ -1,5 +1,5 @@
-#ifndef FIELD_H
-#define FIELD_H
+#ifndef FIELDCLASS
+#define FIELDCLASS
 #include <iostream> 
 #include <vector>
 #include <string>
@@ -94,4 +94,5 @@ class Fields: public Physical_Grid {
 
 
 };
+
 #endif

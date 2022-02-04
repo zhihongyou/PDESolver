@@ -1,5 +1,62 @@
 * Overview
   This is a C++/CUDA based PDE solver using the Finite Difference Method. Users can choose different backends, either CPU or GPU, to solve the problem.
+* Workflow from user side:
+** Create system:
+*** Examples
+    $ System mySystem(dimension=2,Lx=1,Ly=1,Nx=64,Ny=64,Nbx=2,Nby=2);
+     
+    or simply:
+     
+    $ System mySystem();
+*** Explanation
+    By instantializing a System class, users creates a new universe. In the background, the code does the following things:
+    + Set up the universe's geometry: dimension, size Lx&Ly&Lz, grid number in each dimension Nx&Ny&Nz, dx&dy&dz calculated from L/N, and boundary width Nbx&Nby&Nbz.
+    + Create a fieldPointers to store pointers to fields.
+      
+    These quantities, at the moment, are set to be public, so that other classes can access these global variables directly.
+** Create fields:
+*** Examples
+    $ scalarField phi(system=mySystem, priority=0, location="both", bounCond="periodic", initCond="ones", export="on");
+
+    or simply:
+
+    $ scalarField phi(system=mySystem);
+*** Explanation
+    This step creates a physical field based on the geometry specified in mySystem. It does the following things:
+    + Set up the properties of the field: e.g. name, priority, location, bounCond, initCond, export.
+    + Allocate memory for the field, depending on location.
+    + Allocate memory for additional fields, such as dtField for field with priority 0.
+    + Initialize field.
+    + Add a pointer to mySystem.fieldPointers.
+** Declare governing equations:
+*** Examples   
+    $ phi.RHS=collect(Lapl(phi),explicit(a,phi),explicit(b,phi,phi,phi));
+*** Explanation
+    This sets the functional form of calculating the RHS of field phi. Details of implementation will be determined later. It will also check the priority of the field, and set it to zero if nonzero.
+** Create evolver:
+*** Examples
+    $ EulerForward myEvolver(system=mySystem, method="explicit", adapTimeStep={status="on", tolerance=0.01, maxDt=0.01});
+
+    or simply:
+
+    $ EulerForward myEvolver(system=mySystem);
+*** Explanation
+    This creates and sets up a solver for mySystem. It also specifies the values of various properties of the solver, if presence.
+** Run evolver:
+*** Examples   
+    $ myEvolver.run(timeStart=0, timeEnd=1, timeStep=0.01, timeExpo=0.1);
+
+    or simply:
+
+    $ myEvolver.run();
+*** Explanation
+    This is the most important part of the simulation process. It tells how the system will be evolving in time. Users can specify the starting time, ending time, time step, as well as time step to export data.
+** Destroy system:
+*** Examples   
+    $ mySystem.deleteFields();
+*** Explanation
+    Delete all allocated memories and Field class.
+  
 * Classes
 ** System Class
 *** Data or Properties, all public:
@@ -59,59 +116,3 @@
 *** Subclass: RK3/RK4/RKC    
 ** Utility Class: other useful functions
 *** Vector3     
-* Workflow from user side:
-** Create system:
-*** Examples
-    $ System mySystem(dimension=2,Lx=1,Ly=1,Nx=64,Ny=64,Nbx=2,Nby=2);
-     
-    or simply:
-     
-    $ System mySystem();
-*** Explanation
-    By instantializing a System class, users creates a new universe. In the background, the code does the following things:
-    + Set up the universe's geometry: dimension, size Lx&Ly&Lz, grid number in each dimension Nx&Ny&Nz, dx&dy&dz calculated from L/N, and boundary width Nbx&Nby&Nbz.
-    + Create a fieldPointers to store pointers to fields.
-      
-    These quantities, at the moment, are set to be public, so that other classes can access these global variables directly.
-** Create fields:
-*** Examples
-    $ scalarField phi(system=mySystem, priority=0, location="both", bounCond="periodic", initCond="ones", export="on");
-
-    or simply:
-
-    $ scalarField phi(system=mySystem);
-*** Explanation
-    This step creates a physical field based on the geometry specified in mySystem. It does the following things:
-    + Set up the properties of the field: e.g. name, priority, location, bounCond, initCond, export.
-    + Allocate memory for the field, depending on location.
-    + Allocate memory for additional fields, such as dtField for field with priority 0.
-    + Initialize field.
-    + Add a pointer to mySystem.fieldPointers.
-** Declare governing equations:
-*** Examples   
-    $ phi.RHS=collect(Lapl(phi),explicit(a,phi),explicit(b,phi,phi,phi));
-*** Explanation
-    This sets the functional form of calculating the RHS of field phi. Details of implementation will be determined later. It will also check the priority of the field, and set it to zero if nonzero.
-** Create evolver:
-*** Examples
-    $ EulerForward myEvolver(system=mySystem, method="explicit", adapTimeStep={status="on", tolerance=0.01, maxDt=0.01});
-
-    or simply:
-
-    $ EulerForward myEvolver(system=mySystem);
-*** Explanation
-    This creates and sets up a solver for mySystem. It also specifies the values of various properties of the solver, if presence.
-** Run evolver:
-*** Examples   
-    $ myEvolver.run(timeStart=0, timeEnd=1, timeStep=0.01, timeExpo=0.1);
-
-    or simply:
-
-    $ myEvolver.run();
-*** Explanation
-    This is the most important part of the simulation process. It tells how the system will be evolving in time. Users can specify the starting time, ending time, time step, as well as time step to export data.
-** Destroy system:
-*** Examples   
-    $ mySystem.deleteFields();
-*** Explanation
-    Delete all allocated memories and Field class.

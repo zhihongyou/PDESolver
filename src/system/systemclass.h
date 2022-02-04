@@ -1,35 +1,37 @@
-#ifndef RAW_GRID
-#define RAW_GRID
+#ifndef SYSTEMCLASS
+#define SYSTEMCLASS
 #include <iostream> 
 #include <vector>
 #include <string>
 
-
 using namespace std; 
 
 
+//................Class .................................................
 
-//................Class ...................................................................
-
-class Raw_Mesh{
-    // define parameters for a mesh. Usually, we only consider a rectanguar mesh since most of the problem can be comformally mapped onto it. 
+class System{
+    // define parameters for a mesh. Usually, we only consider a rectanguar mesh since most of the problem can be comformally mapped onto it.
+    
+    // protected so that one can access on different files.
     protected:
-    // protected so that one can access on different files. 
-      double dx_raw, dy_raw;  // this is for the raw grid. One need to use the dx dy (projected from grid value assignment)
-      double unit_density;
-
+    
+    // Size of the system in different dimensions.
+    real Lx, Ly, Lz;
+    // Number of grids in different dimensions.
+    int Nx, Ny, Nz;
+    // Number of boundary grids in different dimensions.
+    int Nbx, Nby, Nbz;
+    // Spatial resolution in different directions.
+    real dx, dy, dz;
+    
 
     public: // one can call outside of the class. 
     
     // Define Constructors (length x ,length y, density)
-   Raw_Mesh(double raw_x_size=60,double raw_y_size=60, double unit_density=60);
-   // this function define the range in 2D, with given linear density (same for x and y)
+    System(real Lx=1, real Ly=1, real Lz=1, int Nx=60, int Ny=1, int Nz=1);
 
 
-
-
-//................Methods ...................................................................
-// getting mesh data output 
+//................Methods ................................................
 
     
 };
