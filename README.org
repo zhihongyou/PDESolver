@@ -1,5 +1,8 @@
 * Overview
   This is a C++/CUDA based PDE solver using the Finite Difference Method. Users can choose different backends, either CPU or GPU, to solve the problem.
+* TODOs
+  + Implementation of RHS and Def.
+  + Start writing code, starting from the System class, then Fields. Use a main function to test the code on the way.
 * Workflow from user side:
 ** Create system:
 *** Examples
@@ -67,12 +70,13 @@
     + real dx&dy&dz: spatial resolution in each direction.
     + pointer fieldPointers: collection of pointers to all fields, could be divided into subsets based on Priority of fields.
 *** Methods:
-    + deleteFields: delete all fields in fieldPointers.
+    + sortFieldPointers: sort fieldPointers according to the priority of the fields, such that higher priority fields are calculated first. This is to make sure that we only need to loop once in getRHS to calculate all intermediate fields.    
+    + deleteFields: delete all fields in fieldPointers.      
 ** Field Class
 *** Data or Properties
     + char name: name of the field.
     + int rank: rank of field, 0-scalar (default), 1-vector, 2-tensor
-    + int priority: characterize the order at which the field should be calculated, the larger number the earlier the field will be calculated. 1 by default. Fields with time derivatives have priority 0. When the method xxx.RHS() is called, it automatically change priority to 0.
+    + int priority: characterize the order at which the field should be calculated, the larger number the earlier the field will be calculated. 1 by default. Fields with time derivatives have priority 0. When the method xxx.RHS() is called, it automatically change the priority of xxx to 0.
     + char location: where does the field memory is allocated, could be "cpu", "gpu", or "both" (default).
     + char bounCond: boundary condition, e.g. "none", "periodic", "dirichlet", "neumann", etc. When "none", the field does not contain boundary grids. "none" by default. When the method xxx.RHS() is called, and bounCond="none", then it automatically change to "periodic".
     + struct initCond: initial condition, contains type and additional arguments, e.g. "ones"--all 1, "zeros"--all 0 (default), {"Gaussian",mean,var}, etc.
@@ -87,6 +91,7 @@
     + initField: initialize field as specified by the user.
     + expoField: export field to file.
     + RHS: get RHS of the field equations.
+    + Def: definition of a field as a function of other fields. This should be done after all fields have been defined.
     + implicit/explicit: multiply with implicit or explicit method.
     + dump: export the field to a file with a specific type. The file name is the field name.
     + delete: free memories occupied by fields.
@@ -109,12 +114,12 @@
     + run: loop over time to update field, includes time control, export control, etc.
     + stepping: move a single step forward. This method calls one of the time schemes, e.g. EulerForward, RK4, RKC2.
     + EulerForward/RK4/RKC2: schemes to move forward in time. They all call getRHS to get the RHS of the equations (or time derivatives of the fields). Then call updateFields to get new values of the fields.
-    + getRHS: fields (with priority>0) are calculated subsequently based on their priorities. Then, dtField of each field with priority 0 is calculated. We will need to use fieldPointers to find all fields.
+    + getRHS: fields (with priority>0) are calculated subsequently based on their priorities. Then, dtField of each field with priority 0 is calculated. This can be done by passing functions to 
     + updateFields: takes three arguments: 1-a copy of a field, 2-a copy of a field, 3-a copy of dtField. The specific arguments are determined by the time scheme.
     + dumpFields: create a folder named the current time, then export fields with export="on" into the folder.
     + checkMemory: check whether the fields are located at the right place compatible to the platform value. If not, copy the fields to the right memory.
     + getTimeStep: get new time step if adapTimeStep="on".
-    + sortFieldPointers: sort fieldPointers according to the priority of the fields, such that higher priority fields are calculated first. This is to make sure that we only need to loop once in getRHS to calculate all intermediate fields.
+    + progress: show progress of simulations on screen.
 *** Subcalss: EulerForward
 *** Subclass: PredictorCorrector    
 *** Subclass: RK3/RK4/RKC2
@@ -122,3 +127,8 @@
     There could be more specific subclasses. For example, RK4 could have different coefficients that fit for different problems.
 ** Utility Class: other useful functions
 *** Vector3     
+*** Memory
+*** cpuTools
+*** gpuTools
+    This defines various useful functions that operates data reside on GPU.
+    
