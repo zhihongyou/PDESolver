@@ -1,0 +1,115 @@
+* Classes
+** System Class
+*** Data or Properties, all public:
+    + int dimension: 1, 2 (default), 3.
+    + real Lx&Ly&Lz: system size in x&y&z. They are 1 by default.
+    + int Nx&Ny*Nz: grid number in x&y&z. Depending on the dimension, active dimensions have default values 64, while inactive 1.
+    + int Nbx&Nby&Nbz: boundary width in x&y&z. Depending on the dimension, active dimensions have values 2, while inactive 0.
+    + pointer fieldPointers: collection of pointers to all fields, could be divided into subsets based on Priority of fields.
+*** Methods:
+    + deleteFields: delete all fields in fieldPointers.
+** Field Class
+*** Data or Properties
+    + char name: name of the field.
+    + int rank: rank of field, 0-scalar (default), 1-vector, 2-tensor
+    + int priority: characterize the order at which the field should be calculated, the larger number the lower priority. 1 by default. Fields with time derivatives have priority 0. When the method xxx.RHS() is called, it automatically change priority to 0.
+    + char location: where does the field memory is allocated, could be "cpu", "gpu", or "both" (default).
+    + char bounCond: boundary condition, e.g. "none", "periodic", "dirichlet", "neumann", etc. When "none", the field does not contain boundary grids. "none" by default. When the method xxx.RHS() is called, and bounCond="none", then it automatically change to "periodic".
+    + struct initCond: initial condition, contains type and additional arguments, e.g. "ones"--all 1, "zeros"--all 0 (default), {"Gaussian",mean,var}, etc.
+    + char export: whether or not to export a field to file, i.e. "on" (default) or "off".
+    + pointer fieldCPU&fieldGPU: field memory reside on CPU&GPU.
+    + pointer fieldCopy1&fieldCopy2&fieldCopy3: copies of fields, automatically created when type of evolver has been determined.
+    + pointer dtField&deFieldCopy1&dtFieldCopy2: time derive of fields with priority 0, automatically created when type of evolver has been determined.
+*** Methods:
+    + operators: d1x, d1y, Lapl, biLapl, grad, these will use the field as input, and return a matrix;
+    + create&destroy&copy: allocate and destroy memories occupied by a field;
+    + applyBC: apply boundary condition specified by the user.
+    + initField: initialize field as specified by the user.
+    + expoField: export field to file.
+    + RHS: get RHS of the field equations.
+    + implicit/explicit: multiply with implicit or explicit method.
+    + dump: export the field to a file with a specific type. The file name is the field name.
+    + delete: free memories occupied by fields.
+*** Subclass scalarField
+**** Subclass vorticityFieldIncomFlow      
+*** Subclass vectorField
+*** Subclass tensorField
+**** Subclass symmTensorField
+     
+**** Subclass antiSymmTensorField
+** Evolver class:
+*** Data or properties:
+    + platform: to run simulations on "cpu" (default) or "gpu". This determines where additional copies of fields and dtField's are located.
+    + char method: "explicit" (default) or "implicit" or "semiImplicit".
+    + struct AdapTimeStep: whether to use adaptive time step. Could be "on" or "off" (default), when "on", user also need to specify the default tolerance tor, and the maximum time step. Default values of the two could be set.
+    + timeStart/timeStop/timeStep/timeExpo:
+*** Methods:
+    + run: loop over time to update field, includes time control, export control, etc.
+    + stepping: move a single step forward. This method calls one of the time schemes, e.g. EulerForward, RK4, RKC2.
+    + EulerForward/RK4/RKC2: schemes to move forward in time. They all call getRHS to get the RHS of the equations (or time derivatives of the fields). Then call updateFields to get new values of the fields.
+    + getRHS: fields (with priority>0) are calculated subsequently based on their priorities. Then, dtField of each field with priority 0 is calculated. We will need to use fieldPointers to find all fields.
+    + updateFields: takes three arguments: 1-a copy of a field, 2-a copy of a field, 3-a copy of dtField. The specific arguments are determined by the time scheme.
+    + dumpFields: create a folder named the current time, then export fields with export="on" into the folder.
+    + checkMemory: check whether the fields are located at the right place compatible to the platform value. If not, copy the fields to the right memory.
+    + getTimeStep: get new time step if adapTimeStep="on".
+*** Subcalss: EulerForward
+*** Subclass: PredictorCorrector    
+*** Subclass: RK3/RK4/RKC    
+** Utility Class: other useful functions
+*** Vector3     
+* Workflow from user side:
+** Create system:
+*** Examples
+    $ System mySystem(dimension=2,Lx=1,Ly=1,Nx=64,Ny=64,Nbx=2,Nby=2);
+     
+    or simply:
+     
+    $ System mySystem();
+*** Explanation
+    By instantializing a System class, users creates a new universe. In the background, the code does the following things:
+    + Set up the universe's geometry: dimension, size Lx&Ly&Lz, grid number in each dimension Nx&Ny&Nz, dx&dy&dz calculated from L/N, and boundary width Nbx&Nby&Nbz.
+    + Create a fieldPointers to store pointers to fields.
+      
+    These quantities, at the moment, are set to be public, so that other classes can access these global variables directly.
+** Create fields:
+*** Examples
+    $ scalarField phi(system=mySystem, priority=0, location="both", bounCond="periodic", initCond="ones", export="on");
+
+    or simply:
+
+    $ scalarField phi(system=mySystem);
+*** Explanation
+    This step creates a physical field based on the geometry specified in mySystem. It does the following things:
+    + Set up the properties of the field: e.g. name, priority, location, bounCond, initCond, export.
+    + Allocate memory for the field, depending on location.
+    + Allocate memory for additional fields, such as dtField for field with priority 0.
+    + Initialize field.
+    + Add a pointer to mySystem.fieldPointers.
+** Declare governing equations:
+*** Examples   
+    $ phi.RHS=collect(Lapl(phi),explicit(a,phi),explicit(b,phi,phi,phi));
+*** Explanation
+    This sets the functional form of calculating the RHS of field phi. Details of implementation will be determined later. It will also check the priority of the field, and set it to zero if nonzero.
+** Create evolver:
+*** Examples
+    $ EulerForward myEvolver(system=mySystem, method="explicit", adapTimeStep={status="on", tolerance=0.01, maxDt=0.01});
+
+    or simply:
+
+    $ EulerForward myEvolver(system=mySystem);
+*** Explanation
+    This creates and sets up a solver for mySystem. It also specifies the values of various properties of the solver, if presence.
+** Run evolver:
+*** Examples   
+    $ myEvolver.run(timeStart=0, timeEnd=1, timeStep=0.01, timeExpo=0.1);
+
+    or simply:
+
+    $ myEvolver.run();
+*** Explanation
+    This is the most important part of the simulation process. It tells how the system will be evolving in time. Users can specify the starting time, ending time, time step, as well as time step to export data.
+** Destroy system:
+*** Examples   
+    $ mySystem.deleteFields();
+*** Explanation
+    Delete all allocated memories and Field class.
