@@ -60,10 +60,11 @@
 * Classes
 ** System Class
 *** Data or Properties, all public:
-    + int dimension: 1, 2 (default), 3.
+    + int dimension: 1 (default), 2, 3.
     + real Lx&Ly&Lz: system size in x&y&z. They are 1 by default.
     + int Nx&Ny*Nz: grid number in x&y&z. Depending on the dimension, active dimensions have default values 64, while inactive 1.
     + int Nbx&Nby&Nbz: boundary width in x&y&z. Depending on the dimension, active dimensions have values 2, while inactive 0.
+    + real dx&dy&dz: spatial resolution in each direction.
     + pointer fieldPointers: collection of pointers to all fields, could be divided into subsets based on Priority of fields.
 *** Methods:
     + deleteFields: delete all fields in fieldPointers.
@@ -71,7 +72,7 @@
 *** Data or Properties
     + char name: name of the field.
     + int rank: rank of field, 0-scalar (default), 1-vector, 2-tensor
-    + int priority: characterize the order at which the field should be calculated, the larger number the lower priority. 1 by default. Fields with time derivatives have priority 0. When the method xxx.RHS() is called, it automatically change priority to 0.
+    + int priority: characterize the order at which the field should be calculated, the larger number the earlier the field will be calculated. 1 by default. Fields with time derivatives have priority 0. When the method xxx.RHS() is called, it automatically change priority to 0.
     + char location: where does the field memory is allocated, could be "cpu", "gpu", or "both" (default).
     + char bounCond: boundary condition, e.g. "none", "periodic", "dirichlet", "neumann", etc. When "none", the field does not contain boundary grids. "none" by default. When the method xxx.RHS() is called, and bounCond="none", then it automatically change to "periodic".
     + struct initCond: initial condition, contains type and additional arguments, e.g. "ones"--all 1, "zeros"--all 0 (default), {"Gaussian",mean,var}, etc.
@@ -111,6 +112,7 @@
     + dumpFields: create a folder named the current time, then export fields with export="on" into the folder.
     + checkMemory: check whether the fields are located at the right place compatible to the platform value. If not, copy the fields to the right memory.
     + getTimeStep: get new time step if adapTimeStep="on".
+    + sortFieldPointers: sort fieldPointers according to the priority of the fields, such that higher priority fields are calculated first. This is to make sure that we only need to loop once in getRHS to calculate all intermediate fields.
 *** Subcalss: EulerForward
 *** Subclass: PredictorCorrector    
 *** Subclass: RK3/RK4/RKC    
