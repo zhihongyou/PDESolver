@@ -1,5 +1,5 @@
-#ifndef VECTOR3_H
-#define VECTOR3_H
+#ifndef VECTOR3CLASS_H
+#define VECTOR3CLASS_H
 
 #include <vector>
 
@@ -12,6 +12,13 @@ private:
 public:
     T x,y,z;
 
+    // Vector3();
+    Vector3(T x0, T y0, T z0) {
+        x=x0;
+        y=y0;
+        z=z0;
+    };
+
     //void AddByVector(float,Vector3&);
     T norm();
     T d_square();
@@ -19,13 +26,10 @@ public:
     T dot_with(Vector3&);
 
 
-    Vector3();
-    Vector3(T,T,T);
-    Vector3(std::vector<T>&);
-    Vector3(Vector3&,T);
-    Vector3(const Vector3&,const Vector3&);
-
-    Vector3(const Vector3&,const Vector3&,bool);
+    // Vector3(std::vector<T>&);
+    // Vector3(Vector3&,T);
+    // Vector3(const Vector3&,const Vector3&);
+    // Vector3(const Vector3&,const Vector3&,bool);
 
     inline T getX() const {return x;}
     inline T getY() const {return y;}

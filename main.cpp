@@ -1,72 +1,50 @@
 #include <iostream> 
 #include <vector>
+#include <list>
 #include <cstdio>
 #include <string>
 #include "src/system/systemclass.h"
 #include "src/system/systemclass.cpp"
-#include "external/exprtk/exprtk.hpp"
+// #include "src/utility/dataType.h"
 
 using namespace std;
 
-template <typename T>
-struct myfunc : public exprtk::ifunction<T>
-{
-   myfunc()
-   : exprtk::ifunction<T>(2)
-   { exprtk::disable_has_side_effects(*this); }
-
-   inline T operator()(const T& v1, const T& v2)
-   {
-      return T(1) + (v1 * v2) / T(3);
-   }
+// =======================================================================
+void testFunction(double* u, int N) {
+    for (int i=0; i<N; i++) {
+        u[i]=i;
+    };
 };
 
-template <typename T>
-inline T myotherfunc(T v0, T v1, T v2)
-{
-   return std::abs(v0 - v1) * v2;
-}
+// Field* newField(System mySys, std::string f_name, int f_rank, int f_priority, std::string f_boun_cond, std::string f_init_cond, std::string f_export) {
+//     Field field_temp(mySys, f_name, f_rank, f_priority, f_boun_cond, f_init_cond, f_export);
+//     return &field_temp;
+//     // Field phi(mySys, "phi", 0, 0, "periodic", "ones", "on");
+// };
 
-template <typename T>
-void custom_function(std::string myExpr)
-{
-   typedef exprtk::symbol_table<T> symbol_table_t;
-   typedef exprtk::expression<T>   expression_t;
-   typedef exprtk::parser<T>       parser_t;
 
-   std::string expression_string = myExpr;
+// =======================================================================
+int main() {    
 
-   T x = T(1);
-   T y = T(2);
-
-   myfunc<T> mf;
-
-   symbol_table_t symbol_table;
-   symbol_table.add_variable("x",x);
-   symbol_table.add_variable("y",y);
-   symbol_table.add_function("myfunc",mf);
-   symbol_table.add_function("otherfunc",myotherfunc);
-   symbol_table.add_constants();
-
-   expression_t expression;
-   expression.register_symbol_table(symbol_table);
-
-   parser_t parser;
-   parser.compile(expression_string,expression);
-
-   T result = expression.value();
-   printf("Result: %10.5f\n",result);
-}
-    
-
-int main() {
-
+    // Generating a new system.
     System mySys;
+    // Generating a new mesh.
+    Mesh mesh(2);
+    // Add mesh to system.
+    mySys.mesh_ptr=&mesh;
     
-    // mySys.set();
-    std::cout << mySys.Dimension <<endl;
+    // Creating fields.
+    Field phi(mesh, "phi", 0, 0, "periodic", "ones", "on");
+    // Add the new field to the system.
+    mySys.field_ptrs.push_back(&phi);
+    Field rho(mesh, "rho", 0, 0, "periodic", "ones", "on");    
+    mySys.field_ptrs.push_back(&rho);
+
+    // Printing system's information.
+    mySys.printSysInfo();
     
-    custom_function<double>("myfunc(sin(x / pi), otherfunc(3 * y, x / 2, x * y))");
+    
+    
     return 0;
 };
 
