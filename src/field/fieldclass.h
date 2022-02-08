@@ -8,6 +8,7 @@
 
 using namespace std; 
 
+struct rhs_term;
 
 // =======================================================================
 class Field {
@@ -24,57 +25,74 @@ class Field {
     std::string boun_cond = "periodic";
     std::string init_cond = "none";
     std::string expo_data = "on";
-    Field * field_ptr;
+    std::string f_equation = "";
+    Mesh* mesh_ptr=NULL;
+    std::vector<rhs_term> rhs_terms;
     
     // Field data
-    double * f_cpu;
-    double * f_gpu;
-    double * f_rhs;
-    double * f_copy1;
-    double * f_copy2;
-    double * f_copy3;
-    double * f_copy4;
-    double * f_copy5;
-    double * f_rhs_copy1;
-    double * f_rhs_copy2;
-    double * f_rhs_copy3;
-    double * f_rhs_copy4;
-    double * f_rhs_copy5;
+    double* f_cpu[5]={NULL,NULL,NULL,NULL,NULL};
+    double* f_gpu[5]={NULL,NULL,NULL,NULL,NULL};
+    double* f_rhs[5]={NULL,NULL,NULL,NULL,NULL};
+    double* f_lhs[5]={NULL,NULL,NULL,NULL,NULL};
+    
+    // Operators
+    double * d1xf=NULL;
+    double * d1yf=NULL;
+    double * d1zf=NULL;
+    double * d1x1yf=NULL;
+    double * d1x1zf=NULL;
+    double * d1y1zf=NULL;
+    double * d2xf=NULL;
+    double * d2yf=NULL;
+    double * d2zf=NULL;
+    double * d2x2yf=NULL;
+    double * d2x2zf=NULL;
+    double * d2y2zf=NULL;
+    double * one_over_f=NULL;
+    double * laplace=NULL;
+    double * bi_laplace=NULL;
 
     
     // ===================================================================
     // Methods
-    // -------------------------------------------------------------------
-    // Field initialization
-    // Constant field
-    void initFieldConst(Mesh mesh_t, double*& f_t, double f_value);
-    // Random field with uniform distribution
-    void initFieldRandUnif(Mesh mesh_t, double*& f_t, double f_mean, double f_var);
-    // Random field with normal distribution
-    void initFieldRandNorm(Mesh mesh_t, double*& f_t, double f_mean, double f_var);
-    // Gaussian profile in space f(r)=gaus_amplitude*exp(-(r-r_center)^2/r_decay^2).
-    void initFieldGaus(Mesh mesh_t, double*& f_t, double r_center, double r_decay, double gaus_amplitude);
-
-    // -------------------------------------------------------------------
-    // Field boundary condition
-    void applyBounCond(Mesh mesh_t, double*& f_t);
-
-    // -------------------------------------------------------------------
-    // Export field
-    void exportField(Mesh mesh_t, double*& f_t);
-
     
     // ===================================================================
     // Constructor
-    Field (Mesh f_mesh, std::string f_name, int f_rank, int f_priority, std::string f_boun_cond, std::string f_init_cond, std::string f_expo_data) {
-        name=f_name;
-        rank=f_rank;
-        priority=f_priority;
-        boun_cond=f_boun_cond;
-        init_cond=f_init_cond;
-        expo_data=f_expo_data;
-        initFieldConst(f_mesh,f_cpu,2);
-    };
+    Field (Mesh* mesh_ptr_t, std::string name_t, int rank_t, int priority_t, std::string boun_cond_t, std::string init_cond_t, std::string expo_data_t);
+
+
+    // ------------------------------------------------------------------
+    // Get rhs
+    void getRHS(int i_f_copy);
+    // -------------------------------------------------------------------
+    // Field initialization
+    // Constant field
+    void initFieldConst(double f_value);
+    // Random field with uniform distribution
+    void initFieldRandUnif(double f_mean, double f_var);
+    // Random field with normal distribution
+    void initFieldRandNorm(double f_mean, double f_var);
+    // Gaussian profile in space f(r)=gaus_amplitude*exp(-(r-r_center)^2/r_decay^2).
+    void initFieldGaus(double r_center, double r_decay, double gaus_amplitude);
+    void initFieldSin(double sin_amplitude, int sin_period, double sin_phase);
+
+    // ===================================================================
+    // Differential operators
+    double* getLaplace(int i_field,std::string method);
+    double* getBiLaplace(int i_field,std::string method);
+
+    // -------------------------------------------------------------------
+    // Field boundary condition
+    void applyBounCondPeri(int i_field);
+    void applyBounCondPeriAny(double* f_t);
+
+    // -------------------------------------------------------------------
+    // Export field
+    void export_conf(string str_t, int include_boun);
+    void export_conf_any(double* f_t, string f_name, string str_t, int include_boun);
+    void getEqn();
+    
+    
     
     // ===================================================================
 };

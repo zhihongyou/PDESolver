@@ -19,11 +19,11 @@ class Mesh {
     // Dimension of the system.
     int space_dim=1;
     // Size of the system in different dimensions.
-    Vector3<double> box_size = Vector3<double>(1,1,1);
+    Vector3<double> box_size = Vector3<double>(64,1,1);
     // Number of grids in different dimensions.
     Vector3<int> grid_number = Vector3<int>(64,1,1);
     // Number of boundary grids in different dimensions.
-    Vector3<int> grid_number_boun = Vector3<int>(2,0,0);
+    Vector3<int> grid_number_boun = Vector3<int>(3,0,0);
     // Spatial resolution in different directions.
     Vector3<double> grid_size = Vector3<double>(1,1,1);
     
@@ -34,13 +34,17 @@ class Mesh {
         space_dim=dimension;
         switch(space_dim) {
             case 2:
-                grid_number.y=64;
-                grid_number_boun.y=2;
+                box_size.y=64;
+                grid_number.y=64;                
+                grid_number_boun.y=3;
+                break;
             case 3:
+                box_size.y=64;
+                box_size.z=64;
                 grid_number.y=64;
-                grid_number_boun.y=2;
+                grid_number_boun.y=3;
                 grid_number.z=64;
-                grid_number_boun.z=2;
+                grid_number_boun.z=3;
         };
         grid_size.x=box_size.x/grid_number.x;
         grid_size.y=box_size.y/grid_number.y;

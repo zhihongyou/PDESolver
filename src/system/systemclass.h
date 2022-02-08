@@ -3,10 +3,12 @@
 #include <iostream> 
 #include <vector>
 #include <string>
-#include "../mesh/meshclass.h"
-#include "../mesh/meshclass.cpp"
+// #include "../mesh/meshclass.h"
+// #include "../mesh/meshclass.cpp"
 #include "../field/fieldclass.h"
 #include "../field/fieldclass.cpp"
+// #include "../evolver/evolverclass.h"
+// #include "../evolver/evolverclass.cpp"
 // #include "../utility/vector3class.h"
 
 using namespace std; 
@@ -22,9 +24,9 @@ class System {
     // Name of system.
     std::string name="system";    
     // Pointer to mesh.
-    Mesh* mesh_ptr;
+    Mesh* mesh_ptr=NULL;
     // Pointer to all fields.
-    std::list<Field*> field_ptrs;
+    std::vector<Field*> field_ptrs;
     
 
 //................Methods ................................................
