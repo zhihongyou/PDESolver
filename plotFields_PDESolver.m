@@ -7,7 +7,7 @@ ts=100;
 M=64;
 N=M;
 dn=1;
-plotType=0;
+plotType=10;
 tPaus=0.01;
 
 % figure('Renderer', 'painters', 'Position', [500 300 1600 800]);
@@ -22,13 +22,28 @@ for t=t0:dt:ts
         tStr=[tStr '.0'];
     end
     
-    phi0=importdata([dire0 'phi_' num2str(t) '.dat']);
-    rho0=importdata([dire0 'phib_' num2str(t) '.dat']);    
-    phi=reshape(phi0,[N M])';
-    rho=reshape(rho0,[N M])';    
-    rhot=[rhot;t sum(sum(rho))];
-
     clf;
+    phi=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
+    rhs=reshape(importdata([dire0 'rhs_' num2str(t) '.dat']),[N,M])';
+    lapl=reshape(importdata([dire0 'laplace_' num2str(t) '.dat']),[N,M])';
+    subplot(2,3,1)
+    imagesc(phi);
+    subplot(2,3,2)
+    imagesc(rhs);
+    subplot(2,3,4)
+    imagesc(lapl);
+    subplot(2,3,5)
+    subplot(2,3,3)
+    % surf(rhs1);
+    % rho=reshape(importdata([dire0 'rhs_' num2str(t) '.dat']),[N,M])';
+    % rhs0=reshape(importdata([dire0 'rhs0_' num2str(t) '.dat']),[N,M])';
+    % rhs1=reshape(importdata([dire0 'rhs1_' num2str(t) '.dat']),[N,M])';
+    % lapl=reshape(importdata([dire0 'laplace_' num2str(t) '.dat']),[N,M])';
+    % lapl0=reshape(importdata([dire0 'laplace0_' num2str(t) '.dat']),[N,M])';
+    % lapl1=reshape(importdata([dire0 'laplace1_' num2str(t) '.dat']),[N,M])';
+    
+
+    % clf;
     if plotType==0
         subplot(1,2,1)
         imagesc(phi);
@@ -58,3 +73,19 @@ for t=t0:dt:ts
 
     pause(tPaus);
 end
+
+% lapl=0*phi(4:67,4:67)+2.5*(d2xO4(phi(4:67,4:67),1)+d2yO4(phi(4:67,4:67),1));
+% subplot(1,3,1)
+% surf(lapl0);
+% subplot(1,3,2)
+% surf(lapl1);
+% subplot(1,3,3)
+% surf(lapl)
+% surf(phi1(4:67,4:67)-lapl);
+
+% subplot(1,3,1)
+% surf(phi);
+% subplot(1,3,2)
+% surf(rho);
+% subplot(1,3,3)
+% surf(phi-rho);

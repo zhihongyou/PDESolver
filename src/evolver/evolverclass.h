@@ -4,12 +4,6 @@
 #include <vector>
 #include <string>
 #include <time.h>
-// #include "../utility/data_structs.h"
-// #include "../mesh/meshclass.h"
-// #include "../mesh/meshclass.cpp"
-// #include "../field/fieldclass.h"
-// #include "../field/fieldclass.cpp"
-// #include "../system/systemclass.h"
 #include "../system/systemclass.cpp"
 
 
@@ -42,13 +36,20 @@ public:
     
     // Define Constructors ()
     // Evolver();
-    Evolver(System * system_ptr1, double time_start_t=0, double time_stop_t=1, double time_step_t=0.001, double time_export_t=0.1, std::string scheme_t="EulerForward") {
+    Evolver(System * system_ptr1, double time_start_t=0, double time_stop_t=1, double time_step_t=0.001, double time_export_t=0.1, std::string scheme_t="EulerForward", string device_t="cpu") {
         system_ptr=system_ptr1;
         time_start=time_start_t;
         time_stop=time_stop_t;
         time_step=time_step_t;
         time_export=time_export_t;
         scheme=scheme_t;
+        device=device_t;
+        if (device=="gpu") {
+            for (auto f_ptr_i : (*system_ptr).field_ptrs )
+            {
+                (*f_ptr_i).updateMainFieldDev();
+            };
+        };
     };
 
     
@@ -58,11 +59,13 @@ public:
     // void getRHSs (Field* f_t, std::vector<rhs_operates> phi_rhs);
     void clearRHS(Field* f_ptr_t, int i_field);
     void getRHSs(int i_f_copy);
-    void getRHSField(Field* field_ptr_t, int i_field);
-    void addRHSTerm(Field* f_ptr_t, int i_field, rhs_term rhs_term_t, double** f_func_ptrs, int N_funcs);
+    void getRHSField(Field* field_ptr_t, int i_field);    
     void evalOperator(Field* f_ptr_t, field_function f_func_t, double*& f_func_ptr, int i_field);
+    void addRHSTerm(Field* f_ptr_t, int i_field, rhs_term rhs_term_t, double** f_func_ptrs, int N_funcs);
+    void addRHSTermCPU(rhs_term rhs_term_t, double* f_rhs_temp_ptr, double** f_func_ptrs, int N_funcs, int Nx, int Ny, int Nbx, int Nby);    
     void fieldsUpdate(int i_f_new, int i_f_old, int i_df);
-    void fieldUpdate(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t);
+    void fieldUpdateCPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t);
+    void fieldUpdateGPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t);    
     void EulerForward();
     void run();
     void showProgress();

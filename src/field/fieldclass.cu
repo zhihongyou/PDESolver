@@ -1,0 +1,400 @@
+#ifndef FIELDCLASS_CU
+#define FIELDCLASS_CU
+
+#include <iostream> 
+#include <vector>
+#include <fstream>
+#include <random>
+#include <math.h>
+#include <cmath>
+#include <sstream>
+#include <iomanip>
+#include "fieldclass.h"
+#include "fieldclassGPU.cu"
+
+
+using namespace std;
+
+
+// =======================================================================
+// Constructor
+Field::Field (Mesh* mesh_ptr_t, std::string name_t, int rank_t, int priority_t, std::string boun_cond_t, std::string init_cond_t, std::string expo_data_t) {
+    traits_host.mesh_ptr=mesh_ptr_t;
+    traits_host.name=name_t;
+    traits_host.rank=rank_t;
+    traits_host.priority=priority_t;
+    traits_host.boun_cond=boun_cond_t;
+    traits_host.init_cond=init_cond_t;
+    traits_host.expo_data=expo_data_t;
+    if (traits_host.init_cond=="Gaussian") {
+        initFieldGaus(1,1,1);
+    } else if (traits_host.init_cond=="ones") {
+        initFieldConst(1);
+    } else if (traits_host.init_cond=="sin") {
+        initFieldSin(1,1,0);        
+    };
+    cudaMalloc(&f_dev[0], gridNumberAll()*sizeof(double));
+    updateMainFieldDev();
+};
+
+// -----------------------------------------------------------------------
+void Field::initFieldConst(double f_value) {
+    if (f_host[0] == NULL) {
+        f_host[0] = new double[gridNumberAll()];
+    };
+    int Nx=gridNumber().x;
+    int Ny=gridNumber().y;
+    int Nbx=gridNumberBoun().x;
+    int Nby=gridNumberBoun().y;
+    for (int j=0; j<Ny; j++) {
+        for (int i=0; i<Nx; i++) {
+            int idx=(j+Nby)*(Nx+2*Nbx)+i+Nbx;
+            f_host[0][idx]=f_value;
+        };
+    };
+    applyBounCondPeriCPU(0);
+};
+
+// -----------------------------------------------------------------------
+void Field::initFieldGaus(double r_center, double r_decay, double gaus_amplitude) {
+    if (f_host[0] == NULL) {
+        f_host[0] = new double[gridNumberAll()];
+    };
+    int Nx=gridNumber().x;
+    int Ny=gridNumber().y;
+    int Nbx=gridNumberBoun().x;
+    int Nby=gridNumberBoun().y;
+    double r2m=0.25*Nx*Nx+0.25*Ny*Ny;    
+    for (int j=0; j<Ny; j++) {
+        for (int i=0; i<Nx; i++) {
+            int idx=(j+Nby)*(Nx+2*Nbx)+i+Nbx;
+            double r2=(i-0.5*Nx)*(i-0.5*Nx)+(j-0.5*Ny)*(j-0.5*Ny);
+            f_host[0][idx]=gaus_amplitude*(exp(-20*r2/r2m));
+        };
+    };
+    applyBounCondPeriCPU(0);
+};
+
+// -----------------------------------------------------------------------
+void Field::initFieldSin(double sin_amplitude=1, int sin_period=1, double sin_phase=0) {
+    if (f_host[0] == NULL) {
+        f_host[0] = new double[gridNumberAll()];
+    };
+    int Nx=gridNumber().x;
+    int Ny=gridNumber().y;
+    int Nbx=gridNumberBoun().x;
+    int Nby=gridNumberBoun().y;
+    double r2m=0.25*Nx*Nx+0.25*Ny*Ny;    
+    for (int j=0; j<Ny; j++) {
+        for (int i=0; i<Nx; i++) {
+            int idx=(j+Nby)*(Nx+2*Nbx)+i+Nbx;
+            double r2=(i-0.5*Nx)*(i-0.5*Nx)+(j-0.5*Ny)*(j-0.5*Ny);
+            f_host[0][idx]=sin_amplitude*sin(2*M_PI*sin_period*i/Nx)*sin(2*M_PI*sin_period*j/Ny);
+        };
+    };
+    applyBounCondPeriCPU(0);
+};
+
+
+// ----------------------------------------------------------------------
+void Field::setFieldConstCPU(double* f_t, double f_val, int Nx, int Ny, int Nbx, int Nby) {
+    setFieldConstCPUCore(f_t, f_val, Nx, Ny, Nbx, Nby);
+};
+
+// ----------------------------------------------------------------------
+void Field::setFieldConstGPU(double* f_t, double f_val, int Nx, int Ny, int Nbx, int Nby) {
+    setFieldConstGPUCore<<<Ny,Nx>>>(f_t, f_val, Nx, Ny, Nbx, Nby);
+};
+
+
+// ----------------------------------------------------------------------
+void Field::setRhsTerms(vector<rhs_term> rhs_terms_t) {
+    traits_host.rhs_terms=rhs_terms_t;
+};
+
+// =======================================================================
+// Differential operators
+// -----------------------------------------------------------------------
+double* Field::getLaplaceCPU(int i_field, std::string method="new") {
+    int get_new=1;
+    if (method=="old" && laplace != nullptr) {
+        get_new=0;
+    };
+
+    if (get_new==1) {
+        if (laplace == NULL) {
+            laplace=new double[gridNumberAll()];
+        };
+        int Nx=gridNumber().x;
+        int Ny=gridNumber().y;
+        int Nbx=gridNumberBoun().x;
+        int Nby=gridNumberBoun().y;
+        int di=1;
+        int dj=Nx+2*Nbx;
+        double dx=gridSize().x;
+        double dy=gridSize().y;
+
+        for (int j=0; j<Ny;j++) {
+            for (int i=0; i<Nx; i++) {            
+                int idx=(j+Nby)*dj+i+Nbx;
+                laplace[idx]=FDMCentralO2I::laplace(f_host[i_field],idx,di,dj,dx,dy);
+            };
+        };
+    };
+    return laplace;
+};
+
+// -----------------------------------------------------------------------
+double* Field::getLaplaceGPU(int i_field, std::string method="new") {
+    int get_new=1;
+    if (method=="old" && laplace != nullptr) {
+        get_new=0;
+    };
+    
+    if (get_new==1) {
+        if (laplace == NULL) {
+            cudaMalloc(&laplace, gridNumberAll()*sizeof(double));
+        };
+        int Nx=gridNumber().x;
+        int Ny=gridNumber().y;
+        int Nbx=gridNumberBoun().x;
+        int Nby=gridNumberBoun().y;
+        double dx=gridSize().x;
+        double dy=gridSize().y;
+        getLaplaceGPUCore<<<Ny,Nx>>>(laplace,f_dev[i_field],Nx,Ny,Nbx,Nby,dx,dy);
+        // cout <<"Laplace Done!"<<endl;
+    };
+    return laplace;
+};
+
+
+// -----------------------------------------------------------------------
+double* Field::getBiLaplaceCPU(int i_field, std::string method="new") {
+    int get_new=1;
+    if (method=="old" && laplace != nullptr) {
+        get_new=0;
+    };
+
+    if (get_new==1) {
+        if (bi_laplace == NULL) {
+            bi_laplace=new double[gridNumberAll()];
+        };
+        int Nx=gridNumber().x;
+        int Ny=gridNumber().y;
+        int Nbx=gridNumberBoun().x;
+        int Nby=gridNumberBoun().y;
+        int di=1;
+        int dj=Nx+2*Nbx;
+        double dx=gridSize().x;
+        double dy=gridSize().y;
+
+        for (int j=0; j<Ny;j++) {
+            for (int i=0; i<Nx; i++) {            
+                int idx=(j+Nby)*dj+i+Nbx;
+                bi_laplace[idx]=1.0/(dx*dx*dy*dy)*( 779.0/45.0*f_host[i_field][idx]
+			  -191.0/45.0*( f_host[i_field][idx+di] + f_host[i_field][idx-di] + f_host[i_field][idx+dj] + f_host[i_field][idx-dj] )
+			  -187.0/90.0*( f_host[i_field][idx+di+dj] + f_host[i_field][idx-di+dj] + f_host[i_field][idx+di-dj] + f_host[i_field][idx-di-dj] )
+			  +7.0/30.0*( f_host[i_field][idx+2*di] + f_host[i_field][idx-2*di] + f_host[i_field][idx+2*dj] + f_host[i_field][idx-2*dj] )
+			  +47.0/45.0*( f_host[i_field][idx+di+2*dj] + f_host[i_field][idx-di+2*dj] + f_host[i_field][idx+di-2*dj] + f_host[i_field][idx-di-2*dj]
+				       + f_host[i_field][idx+2*di+dj] + f_host[i_field][idx-2*di+dj] + f_host[i_field][idx+2*di-dj] + f_host[i_field][idx-2*di-dj] )
+			  -29.0/180.0*( f_host[i_field][idx+2*di+2*dj] + f_host[i_field][idx-2*di+2*dj] + f_host[i_field][idx+2*di-2*dj] + f_host[i_field][idx-2*di-2*dj] )
+			  +1.0/45.0*( f_host[i_field][idx+3*di] + f_host[i_field][idx-3*di] + f_host[i_field][idx+3*dj] + f_host[i_field][idx-3*dj] )
+			  -17.0/180.0*( f_host[i_field][idx+di+3*dj] + f_host[i_field][idx-di+3*dj] + f_host[i_field][idx+di-3*dj] + f_host[i_field][idx-di-3*dj]
+				       + f_host[i_field][idx+3*di+dj] + f_host[i_field][idx-3*di+dj] + f_host[i_field][idx+3*di-dj] + f_host[i_field][idx-3*di-dj] )
+			  );
+            };
+        };
+    };
+    return bi_laplace;
+};
+
+
+//=======================================================================
+void Field::applyBounCondPeriCPU(int i_field) {
+    applyBounCondPeriAnyCPU(f_host[i_field]);
+};
+
+//=======================================================================
+void Field::applyBounCondPeriGPU(int i_field) {
+    applyBounCondPeriAnyGPU<<<gridNumber().y,gridNumber().x>>>
+        (f_dev[i_field],
+        gridNumber().x,gridNumber().y,
+        gridNumberBoun().x,gridNumberBoun().y);
+};
+
+//=======================================================================
+void Field::applyBounCondPeriAnyCPU(double* f_t) {
+    int Nx=gridNumber().x;
+    int Ny=gridNumber().y;
+    int Nbx=gridNumberBoun().x;
+    int Nby=gridNumberBoun().y;
+    int dj=Nx+2*Nbx;
+    int idx,idx1;
+    for (int j=Nby; j<Ny+Nby; j++) {
+        for (int i=0; i<Nbx; i++) {
+            idx=j*dj+i;
+            idx1=idx+Nx;
+            f_t[idx]=f_t[idx1];
+            f_t[idx1+Nbx]=f_t[idx+Nbx];
+        };
+    };
+    for (int j=0; j<Nby; j++) {
+        for (int i=0; i<Nx+2*Nbx; i++) {            
+            idx=j*dj+i;
+            idx1=idx+dj*Ny;
+            f_t[idx]=f_t[idx1];
+            f_t[idx1+dj*Nby]=f_t[idx+dj*Nby];
+        };
+    };
+
+};
+
+
+// ----------------------------------------------------------------------
+void Field::export_conf(string str_t, int include_boun=0) {
+    export_conf_any(f_host[0],name(),str_t,include_boun, "cpu");
+}
+
+// ----------------------------------------------------------------------
+void Field::export_conf_any(double* f_t, string f_name, string str_t, int include_boun=0, string location="cpu") {
+    ofstream conf_file;
+    int PrecData=8;
+    std::string conf_file_name="data/"+f_name+"_"+ str_t + ".dat";
+    conf_file.open(conf_file_name.c_str() );
+    
+    int idx;
+    int Nx=gridNumber().x;
+    int Ny=gridNumber().y;
+    int Nbx=gridNumberBoun().x;
+    int Nby=gridNumberBoun().y;
+    int* idx0=new int [4];
+
+    
+    if (location=="gpu") {
+        if (f_temp_host == NULL) {
+            f_temp_host=new double[gridNumberAll()];
+        };
+        updateAnyFieldHost(f_temp_host,f_t);
+    };        
+    
+    if (include_boun==0) {
+        idx0[0]=0;
+        idx0[1]=0;
+        idx0[2]=0;
+        idx0[3]=0;
+    } else {
+        idx0[0]=-Nbx;
+        idx0[1]=Nbx;
+        idx0[2]=-Nby;
+        idx0[3]=Nby;
+    };
+
+    for (int j=idx0[2]; j<Ny+idx0[3]; j++) {
+        for (int i=idx0[0]; i<Nx+idx0[1]; i++) {        
+            idx=(Nx+2*Nbx)*(j+Nby)+i+Nbx;
+            // conf_file<<fixed <<setprecision(PrecData) <<f_t[idx]<<endl;
+            if (location=="cpu") {
+                conf_file<<setiosflags(ios::scientific) <<setprecision(PrecData) <<f_t[idx]<<endl;
+            } else {
+                conf_file<<setiosflags(ios::scientific) <<setprecision(PrecData) <<f_temp_host[idx]<<endl;
+            };
+        }
+    }
+    conf_file.close();
+}
+
+// ----------------------------------------------------------------------
+// string Field::equation() {
+//     string eqn;
+//     if (priority==0) {
+//         eqn="p_t "+name()+"=";
+//     } else {
+//         eqn=name()+"=";
+//     };
+//     for (auto rhs_term_i : rhsTerms()) {
+//         if (rhs_term_i != rhsTerms().begin()) {
+            
+//         };
+//         for (auto f_func_i : rhs_term_i.f_function) {
+//             eqn=eqn+
+//                 cout<<"*"<<f_func_i.f_operator<<"("<<(*f_func_i.field_ptr).name() <<")";
+//                 evalOperator(f_ptr_i,f_func_i,f_func_ptrs[N_funcs],i_field);
+//                 N_funcs+=1;
+//             };
+//             addRHSTerm(f_ptr_i,i_field,rhs_term_i,f_func_ptrs,N_funcs);
+//         };
+
+//         if ((*f_ptr_i).priority()>0 && (*f_ptr_i).bounCond()=="periodic") {
+//             if (device=="cpu") {
+//                 (*f_ptr_i).applyBounCondPeriCPU(i_field);
+//             } else if (device=="gpu"){
+//                 (*f_ptr_i).applyBounCondPeriGPU(i_field);
+//             };
+//         };
+// };
+
+// -------------------------------------------------------------------
+// Copy any field data from CPU to GPU
+void Field::updateAnyFieldDev (double* f_dev_ptr, double * f_host_ptr) {
+    if (f_dev_ptr == NULL) {
+        cudaMalloc(&f_dev_ptr, gridNumberAll()*sizeof(double));
+    };
+    cudaMemcpy(f_dev_ptr, f_host_ptr, gridNumberAll()*sizeof(double),cudaMemcpyHostToDevice);
+};
+
+// -------------------------------------------------------------------
+// Copy any field data from GPU to CPU
+void Field::updateAnyFieldHost (double* f_host_ptr, double * f_dev_ptr) {    
+    cudaMemcpy(f_host_ptr, f_dev_ptr, gridNumberAll()*sizeof(double),cudaMemcpyDeviceToHost);
+};
+
+// -------------------------------------------------------------------
+// Copy main field data from CPU to GPU
+void Field::updateMainFieldDev () {
+    if (f_dev[0] == NULL) {
+        cudaMalloc(&f_dev[0], gridNumberAll()*sizeof(double));
+    };
+    cudaMemcpy(f_dev[0], f_host[0], gridNumberAll()*sizeof(double),cudaMemcpyHostToDevice);
+};
+
+// -------------------------------------------------------------------
+// Copy main field data from GPU to CPU
+void Field::updateMainFieldHost () {
+    if (f_host[0] == NULL) {
+        f_host[0]=new double[gridNumberAll()];
+    };
+    cudaMemcpy(f_host[0], f_dev[0], gridNumberAll()*sizeof(double),cudaMemcpyDeviceToHost);
+};
+
+
+// -----------------------------------------------------------------------
+// Operation struct for a single function call to a field
+struct field_function {
+    std::string f_operator;
+    Field* field_ptr;
+    
+    field_function (std::string f_operator1,Field* field_ptr1) {
+        f_operator=f_operator1;
+        field_ptr=field_ptr1;
+    };
+};
+
+
+// -----------------------------------------------------------------------
+// Operation struct for collecting RHS of field.
+struct rhs_term {
+    std::vector<field_function> f_function;
+    double prefactor;
+    std::string scheme;
+    
+    rhs_term(double prefactor_1, std::vector<field_function> f_function1, std::string scheme1) {
+        prefactor=prefactor_1;
+        f_function=f_function1;        
+        scheme=scheme1;
+    };
+};
+
+
+
+
+#endif

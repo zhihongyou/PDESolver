@@ -3,13 +3,9 @@
 #include <iostream> 
 #include <vector>
 #include <string>
-// #include "../mesh/meshclass.h"
-// #include "../mesh/meshclass.cpp"
 #include "../field/fieldclass.h"
-#include "../field/fieldclass.cpp"
-// #include "../evolver/evolverclass.h"
-// #include "../evolver/evolverclass.cpp"
-// #include "../utility/vector3class.h"
+#include "../field/fieldclass.cu"
+
 
 using namespace std; 
 

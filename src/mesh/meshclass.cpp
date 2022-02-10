@@ -1,6 +1,9 @@
-#include "meshclass.h"
+#ifndef MESHCLASS_CPP
+#define MESHCLASS_CPP
+
 #include <iostream> 
 #include <vector>
+#include "meshclass.h"
 
 using namespace std; 
 
@@ -13,3 +16,4 @@ using namespace std;
 // };
 
 
+#endif
