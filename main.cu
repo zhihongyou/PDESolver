@@ -50,7 +50,7 @@ int main() {
     
     // Creating an evolver:
     string device="gpu";
-    Evolver evolver(&mySys,0,10000,0.01,10000,"EulerForward",device);
+    Evolver evolver(&mySys,0,100,0.01,1,"EulerForward",device);
     // evolver.EulerForward();
     
     // Run simulations.

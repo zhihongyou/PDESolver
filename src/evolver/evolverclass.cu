@@ -43,9 +43,7 @@ void Evolver::run() {
             string str_t=to_string(te);
             for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
                 if ((*f_ptr_i).expoData() =="on") {
-                    (*f_ptr_i).export_conf(str_t,device,1);
-                    (*f_ptr_i).export_conf_any((*f_ptr_i).f_rhs[0], "rhs", str_t, device, 1);
-                    (*f_ptr_i).export_conf_any((*f_ptr_i).laplace, "laplace", str_t, device, 1);
+                    (*f_ptr_i).export_conf(str_t,device,1);                   
                 };        
             };
             // Show progress of simulation.
@@ -251,7 +249,6 @@ void Evolver::addRHSTerm(Field* f_ptr_t, int i_field, rhs_term rhs_term_t, doubl
         double** f_func_ptrs_dev;
         cudaMalloc(&f_func_ptrs_dev,10*sizeof(double*));
         cudaMemcpy(f_func_ptrs_dev, f_func_ptrs, 10*sizeof(double*),cudaMemcpyHostToDevice);
-        // addRHSTermGPU<<<Ny,Nx>>>(rhs_term_t, f_rhs_temp_ptr, f_func_ptrs, N_funcs, Nx, Ny, Nbx, Nby);
         addRHSTermGPU<<<Ny,Nx>>>(rhs_term_t, f_rhs_temp_ptr, f_func_ptrs_dev, N_funcs, Nx, Ny, Nbx, Nby);
     };
     

@@ -3,7 +3,7 @@ dire0='/home/you/Dropbox/Apps/github/PDESolver/data/';
 
 t0=0;
 dt=5;
-ts=0;
+ts=100;
 M=64+6;
 N=M;
 dn=1;

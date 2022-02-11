@@ -21,7 +21,7 @@ struct FieldTraits {
     std::string expo_data = "on";
     std::string equation = "";
     Mesh* mesh_ptr=NULL;
-    std::vector<rhs_term> rhs_terms;    
+    std::vector<rhs_term> rhs_terms;
 };
 
 // =======================================================================
