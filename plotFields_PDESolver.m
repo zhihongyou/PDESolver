@@ -1,10 +1,10 @@
 
 dire0='/home/you/Dropbox/Apps/github/PDESolver/data/';
 
-t0=0;
+t0=5;
 dt=5;
-ts=100;
-M=64;
+ts=5;
+M=64+6;
 N=M;
 dn=1;
 plotType=10;
@@ -75,13 +75,13 @@ for t=t0:dt:ts
 end
 
 % lapl=0*phi(4:67,4:67)+2.5*(d2xO4(phi(4:67,4:67),1)+d2yO4(phi(4:67,4:67),1));
+% lapl=0*phi+2.5*(d2xO4(phi,1)+d2yO4(phi,1));
 % subplot(1,3,1)
-% surf(lapl0);
+% surf(rhs);
 % subplot(1,3,2)
-% surf(lapl1);
+% surf(lapl);
 % subplot(1,3,3)
-% surf(lapl)
-% surf(phi1(4:67,4:67)-lapl);
+% surf(rhs-lapl)
 
 % subplot(1,3,1)
 % surf(phi);

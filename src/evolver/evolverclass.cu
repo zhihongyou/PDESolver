@@ -18,18 +18,19 @@ void Evolver::run() {
     time_start_wall = clock();
     
     // Export initial configuration.
-    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
-        if ((*f_ptr_i).expoData() =="on") {
-            (*f_ptr_i).export_conf("0",0);
-        };
+    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {                
         if (device=="gpu") {
-            (*f_ptr_i).updateMainFieldDev();
+            (*f_ptr_i).updateMainFieldDev();            
+        };       
+                
+        if ((*f_ptr_i).expoData() =="on") {
+            (*f_ptr_i).export_conf("0",device,1);
         };
     };
 
     // Running through time
     for (time_now=time_start; time_now<=time_stop+0.1*time_step; time_now+=time_step) {
-
+        
         // Move a step forward.
         if (scheme=="EulerForward") {
             EulerForward();
@@ -42,9 +43,9 @@ void Evolver::run() {
             string str_t=to_string(te);
             for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
                 if ((*f_ptr_i).expoData() =="on") {
-                    (*f_ptr_i).export_conf(str_t,0);
-                    (*f_ptr_i).export_conf_any((*f_ptr_i).f_rhs[0], "rhs", str_t, 0, "gpu");
-                    (*f_ptr_i).export_conf_any((*f_ptr_i).laplace, "laplace", str_t, 0, "gpu");
+                    (*f_ptr_i).export_conf(str_t,device,1);
+                    (*f_ptr_i).export_conf_any((*f_ptr_i).f_rhs[0], "rhs", str_t, device, 1);
+                    (*f_ptr_i).export_conf_any((*f_ptr_i).laplace, "laplace", str_t, device, 1);
                 };        
             };
             // Show progress of simulation.
@@ -63,8 +64,14 @@ void Evolver::run() {
 // ----------------------------------------------------------------------
 // Euler forward scheme to evolve over time.
 void Evolver::EulerForward() {
-    getRHSs(0);
+
+    
+    
+    getRHSs(0);    
+    
     fieldsUpdate(0,0,0);
+    
+    
 };
 
 // ----------------------------------------------------------------------
@@ -81,6 +88,7 @@ void Evolver::fieldsUpdate(int i_f_new, int i_f_old, int i_df) {
                 if ((*f_ptr_i).bounCond()=="periodic") {
                     (*f_ptr_i).applyBounCondPeriGPU(i_f_new);
                 };
+                
             };            
         };        
     };
@@ -104,23 +112,28 @@ void Evolver::fieldUpdateCPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df,
 
 // ----------------------------------------------------------------------
 void Evolver::fieldUpdateGPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t) {
+    
     int Nx=(*f_ptr_t).gridNumber().x;
     int Ny=(*f_ptr_t).gridNumber().y;
     int Nbx=(*f_ptr_t).gridNumberBoun().x;
     int Nby=(*f_ptr_t).gridNumberBoun().y;
-    fieldUpdateGPUCore<<<Ny,Nx>>>((*f_ptr_t).f_host[i_f_new], (*f_ptr_t).f_host[i_f_old], (*f_ptr_t).f_rhs[i_df], time_step_t, Nx, Ny, Nbx, Nby);
+    fieldUpdateGPUCore<<<Ny,Nx>>>((*f_ptr_t).f_dev[i_f_new], (*f_ptr_t).f_dev[i_f_old], (*f_ptr_t).f_rhs[i_df], time_step_t, Nx, Ny, Nbx, Nby);
 };
 
 
 // ----------------------------------------------------------------------
 void Evolver::getRHSs(int i_field) {
+    
     // Loop over fields.
-    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
+    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
+        
         clearRHS(f_ptr_i,i_field);
+        
         // Loop over terms on the RHS of each field.
         // cout <<"For field "<<(*f_ptr_i).name()<<": "<<endl;        
         for (auto rhs_term_i : (*f_ptr_i).rhsTerms()) {            
-            double* f_func_ptrs[10];
+            // double* f_func_ptrs[10];
+            double** f_func_ptrs=new double*[10];
             int N_funcs=0;
             // Evaluate each operator applied on field
             for (auto f_func_i : rhs_term_i.f_function) {
@@ -128,8 +141,10 @@ void Evolver::getRHSs(int i_field) {
                 evalOperator(f_ptr_i,f_func_i,f_func_ptrs[N_funcs],i_field);                
                 N_funcs+=1;
             };
-            addRHSTerm(f_ptr_i,i_field,rhs_term_i,f_func_ptrs,N_funcs);            
-        };        
+            
+            addRHSTerm(f_ptr_i,i_field,rhs_term_i,f_func_ptrs,N_funcs);
+                       
+        };
 
         if ((*f_ptr_i).priority()>0 && (*f_ptr_i).bounCond()=="periodic") {
             if (device=="cpu") {
@@ -204,9 +219,9 @@ void Evolver::addRHSTerm(Field* f_ptr_t, int i_field, rhs_term rhs_term_t, doubl
     int Nx=(*f_ptr_t).gridNumber().x;
     int Ny=(*f_ptr_t).gridNumber().y;
     int Nbx=(*f_ptr_t).gridNumberBoun().x;
-    int Nby=(*f_ptr_t).gridNumberBoun().y;
-    
+    int Nby=(*f_ptr_t).gridNumberBoun().y;    
     double* f_rhs_temp_ptr;
+    
     if ((*f_ptr_t).priority() == 0) {
         if (rhs_term_t.scheme=="explicit") {
             f_rhs_temp_ptr=(*f_ptr_t).f_rhs[i_field];
@@ -219,7 +234,8 @@ void Evolver::addRHSTerm(Field* f_ptr_t, int i_field, rhs_term rhs_term_t, doubl
         } else if (device == "gpu") {
             f_rhs_temp_ptr=(*f_ptr_t).f_dev[i_field];
         };
-    };
+    };    
+    
     if (f_rhs_temp_ptr == NULL) {
         if (device=="cpu") {
             f_rhs_temp_ptr=new double[(*f_ptr_t).gridNumberAll()];
@@ -230,12 +246,16 @@ void Evolver::addRHSTerm(Field* f_ptr_t, int i_field, rhs_term rhs_term_t, doubl
             (*f_ptr_t).setFieldConstGPU(f_rhs_temp_ptr, 0, Nx, Ny, Nbx, Nby);
         };
     };
-
+    
     if (device=="cpu") {        
         addRHSTermCPU(rhs_term_t, f_rhs_temp_ptr, f_func_ptrs, N_funcs, Nx, Ny, Nbx, Nby);
     } else if (device=="gpu") {
-        addRHSTermGPU<<<Ny,Nx>>>(rhs_term_t, f_rhs_temp_ptr, f_func_ptrs, N_funcs, Nx, Ny, Nbx, Nby);
-    };    
+        double** f_func_ptrs_dev;
+        cudaMalloc(&f_func_ptrs_dev,10*sizeof(double*));
+        cudaMemcpy(f_func_ptrs_dev, f_func_ptrs, 10*sizeof(double*),cudaMemcpyHostToDevice);
+        // addRHSTermGPU<<<Ny,Nx>>>(rhs_term_t, f_rhs_temp_ptr, f_func_ptrs, N_funcs, Nx, Ny, Nbx, Nby);
+        addRHSTermGPU<<<Ny,Nx>>>(rhs_term_t, f_rhs_temp_ptr, f_func_ptrs_dev, N_funcs, Nx, Ny, Nbx, Nby);
+    };
     
 };
 

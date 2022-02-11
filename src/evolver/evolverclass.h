@@ -48,6 +48,7 @@ public:
             for (auto f_ptr_i : (*system_ptr).field_ptrs )
             {
                 (*f_ptr_i).updateMainFieldDev();
+                (*f_ptr_i).f_temp_host=new double[(*f_ptr_i).gridNumberAll()];
             };
         };
     };

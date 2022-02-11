@@ -251,12 +251,16 @@ void Field::applyBounCondPeriAnyCPU(double* f_t) {
 
 
 // ----------------------------------------------------------------------
-void Field::export_conf(string str_t, int include_boun=0) {
-    export_conf_any(f_host[0],name(),str_t,include_boun, "cpu");
+void Field::export_conf(string str_t, string device, int include_boun=0) {
+    if (device=="cpu") {        
+        export_conf_any(f_host[0],name(),str_t, "cpu", include_boun);
+    } else if (device=="gpu") {
+        export_conf_any(f_dev[0],name(),str_t, "gpu", include_boun);
+    };
 }
 
 // ----------------------------------------------------------------------
-void Field::export_conf_any(double* f_t, string f_name, string str_t, int include_boun=0, string location="cpu") {
+void Field::export_conf_any(double* f_t, string f_name, string str_t, string location_t="cpu" , int include_boun=0) {
     ofstream conf_file;
     int PrecData=8;
     std::string conf_file_name="data/"+f_name+"_"+ str_t + ".dat";
@@ -270,11 +274,13 @@ void Field::export_conf_any(double* f_t, string f_name, string str_t, int includ
     int* idx0=new int [4];
 
     
-    if (location=="gpu") {
+    if (location_t=="gpu") {
         if (f_temp_host == NULL) {
             f_temp_host=new double[gridNumberAll()];
-        };
-        updateAnyFieldHost(f_temp_host,f_t);
+        };        
+        cudaMemcpy(f_temp_host, f_t, gridNumberAll()*sizeof(double),cudaMemcpyDeviceToHost);
+        // cout <<f_temp_host[250]<<endl;
+        // updateAnyFieldHost(f_temp_host,f_t);
     };        
     
     if (include_boun==0) {
@@ -293,7 +299,7 @@ void Field::export_conf_any(double* f_t, string f_name, string str_t, int includ
         for (int i=idx0[0]; i<Nx+idx0[1]; i++) {        
             idx=(Nx+2*Nbx)*(j+Nby)+i+Nbx;
             // conf_file<<fixed <<setprecision(PrecData) <<f_t[idx]<<endl;
-            if (location=="cpu") {
+            if (location_t=="cpu") {
                 conf_file<<setiosflags(ios::scientific) <<setprecision(PrecData) <<f_t[idx]<<endl;
             } else {
                 conf_file<<setiosflags(ios::scientific) <<setprecision(PrecData) <<f_temp_host[idx]<<endl;

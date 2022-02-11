@@ -79,7 +79,7 @@ void setFieldConstCPUCore(double* f_t, double f_val, int Nx, int Ny, int Nbx, in
 // ----------------------------------------------------------------------
 __global__ void setFieldConstGPUCore(double* f_t, double f_val, int Nx, int Ny, int Nbx, int Nby) {
     int i=threadIdx.x;
-    int j=blockIdx.x;    
+    int j=blockIdx.x;
     int idx=(Nx+2*Nbx)*(j+Nby)+i+Nbx;
     
     if (i<Nx && j<Ny) {

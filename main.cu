@@ -40,18 +40,18 @@ int main() {
     // Field phi(&mesh, "phi", 0, 0, "periodic", "sin", "on");
     // Set field equations.
     phi.setRhsTerms({
-        {2.5,{{"laplace",&phi}},"explicit"},
-        {0,{{"1",&phi}},"explicit"}
+        {2.5,{{"laplace",&phi}},"explicit"}
     });
 
     // Add fields to the system.
     mySys.field_ptrs.push_back(&phi);
     // Print system information.
     // mySys.printSysInfo();
-
+    
     // Creating an evolver:
-    string device="cpu";
+    string device="gpu";
     Evolver evolver(&mySys,0,100,0.01,1,"EulerForward",device);
+    // evolver.EulerForward();
     
     // Run simulations.
     evolver.run();

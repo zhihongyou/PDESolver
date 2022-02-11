@@ -106,8 +106,8 @@ class Field {
 
     // -------------------------------------------------------------------
     // Export field
-    void export_conf(string str_t, int include_boun);
-    void export_conf_any(double* f_t, string f_name, string str_t, int include_boun, string location);
+    void export_conf(string str_t, string device, int include_boun);
+    void export_conf_any(double* f_t, string f_name, string str_t, string location_t, int include_boun);
     void getEqn();
     
     // ------------------------------------------------------------------
