@@ -29,41 +29,41 @@ __global__ void getLaplaceGPUCore(double* laplace, double* f_t, int Nx, int Ny, 
 
 // ----------------------------------------------------------------------
 __global__ void applyBounCondPeriAnyGPU(double* f_t, int Nx, int Ny, int Nbx, int Nby) {
-    int i=threadIdx.x;
-    int j=blockIdx.x;
-    int idx=(Nx+2*Nbx)*(j+Nby)+i+Nbx;
+    int i=blockIdx.x;
+    int j=threadIdx.x;
+    int idx=(Nx+2*Nbx)*(i+Nby)+j+Nbx;
     int dj=Nx+2*Nbx;
     int idx1;
 
-    if (j<Nby) {   		// Bottom rows
+    if (i<Nby) {   		// Bottom rows
         idx1=idx+Ny*dj;
-        f_t[idx]=f_t[idx1];
-    } else if (j>Ny-1-Nby) {	// Top rows
+        f_t[idx1]=f_t[idx];
+    } else if (i>Ny-1-Nby) {	// Top rows
         idx1=idx-Ny*dj;
-        f_t[idx]=f_t[idx1];
-    };
+        f_t[idx1]=f_t[idx];
+    }
 
-    if (i<Nbx) {                 // Left columns
+    if (j<Nbx) {                 // Left columns
         idx1=idx+Nx;
-        f_t[idx]=f_t[idx1];    
-        if (j<Nby) {               // Left bottom corner.
-            idx1=idx+Ny*dj+Nx;
-            f_t[idx]=f_t[idx1];
-        } else if (j>Ny-1-Nby) {	  // Left top corner.
-            idx1=idx-Ny*dj+Nx;
-            f_t[idx]=f_t[idx1];
-        };
-    } else if (i>Nx-1-Nbx) {   // Right columns
+        f_t[idx1]=f_t[idx];    
+        if (i<Nby) {               // Left bottom corner.
+            idx1=idx+(Nx+2*Nbx)*Ny+Nx;
+            f_t[idx1]=f_t[idx];
+        } else if (i>Ny-1-Nby) {	  // Left top corner.
+            idx1=idx-(Nx+2*Nbx)*Ny+Nx;
+            f_t[idx1]=f_t[idx];
+        }
+    } else if (j>Nx-1-Nbx) {   // Right columns
         idx1=idx-Nx;
-        f_t[idx]=f_t[idx1];
-        if (j<Nby) {               // Right bottom corner.
-            idx1=idx+Ny*j-Nx;
-            f_t[idx]=f_t[idx1];
-        } else if (j>Ny-1-Nby) {	 // Right top corner.
-            idx1=idx-Ny*dj-Nx;
-            f_t[idx]=f_t[idx1];
-        };
-    };    
+        f_t[idx1]=f_t[idx];
+        if (i<Nby) {               // Right bottom corner.
+            idx1=idx+(Nx+2*Nbx)*Ny-Nx;
+            f_t[idx1]=f_t[idx];
+        } else if (i>Ny-1-Nby) {	 // Right top corner.
+            idx1=idx-(Nx+2*Nbx)*Ny-Nx;
+            f_t[idx1]=f_t[idx];
+        }			       
+    }    
 };
 
 // ----------------------------------------------------------------------

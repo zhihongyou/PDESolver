@@ -64,14 +64,12 @@ void Evolver::run() {
 // ----------------------------------------------------------------------
 // Euler forward scheme to evolve over time.
 void Evolver::EulerForward() {
-
     
-    
-    getRHSs(0);    
-    
+    getRHSs(0);        
     fieldsUpdate(0,0,0);
-    
-    
+    // for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
+    //     (*f_ptr_i).export_conf("0",device,1);
+    // };
 };
 
 // ----------------------------------------------------------------------

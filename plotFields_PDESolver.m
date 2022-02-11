@@ -1,9 +1,9 @@
 
 dire0='/home/you/Dropbox/Apps/github/PDESolver/data/';
 
-t0=5;
+t0=0;
 dt=5;
-ts=5;
+ts=0;
 M=64+6;
 N=M;
 dn=1;
@@ -24,8 +24,8 @@ for t=t0:dt:ts
     
     clf;
     phi=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
-    rhs=reshape(importdata([dire0 'rhs_' num2str(t) '.dat']),[N,M])';
-    lapl=reshape(importdata([dire0 'laplace_' num2str(t) '.dat']),[N,M])';
+    rhs=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
+    lapl=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
     subplot(2,3,1)
     imagesc(phi);
     subplot(2,3,2)
