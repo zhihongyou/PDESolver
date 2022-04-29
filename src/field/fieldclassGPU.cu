@@ -26,6 +26,17 @@ __global__ void getLaplaceGPUCore(double* laplace, double* f_t, int Nx, int Ny, 
     };
 };
 
+// ----------------------------------------------------------------------
+__global__ void getFNowGPU(double* f_now, double* f_t, int Nx, int Ny, int Nbx, int Nby) {
+    int i=threadIdx.x;
+    int j=blockIdx.x;    
+    int idx=(blockDim.x+2*Nbx)*(j+Nby)+i+Nbx;    
+
+    if (i<Nx && j<Ny) {
+        f_now[idx]=f_t[idx];
+    };
+};
+
 
 // ----------------------------------------------------------------------
 __global__ void applyBounCondPeriAnyGPU(double* f_t, int Nx, int Ny, int Nbx, int Nby) {

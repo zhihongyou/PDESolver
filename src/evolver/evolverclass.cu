@@ -25,9 +25,7 @@ void Evolver::run() {
         if ((*f_ptr_i).expoData() =="on") {
             (*f_ptr_i).export_conf("0",device,1);
         };
-    };
-    // cout <<"Export 0 successfully"<<endl;
-    
+    };    
 
     // Running through time
     for (time_now=time_start; time_now<=time_stop+0.1*time_step; time_now+=time_step) {
@@ -45,8 +43,6 @@ void Evolver::run() {
             for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
                 if ((*f_ptr_i).expoData() =="on") {
                     (*f_ptr_i).export_conf(str_t,device,1);
-                    (*f_ptr_i).export_conf_any((*f_ptr_i).rhs[0],"rhs",str_t,device,1);
-                    (*f_ptr_i).export_conf_any((*f_ptr_i).laplace,"laplace",str_t,device,1);                    
                 };        
             };
             // Show progress of simulation.
@@ -103,7 +99,7 @@ void Evolver::initRHSs() {
             
                 // Evaluate each operator applied on field
                 for (auto f_func_i : rhs_term_i.f_funcs) {
-                    if (f_func_i.f_operator=="1") {                
+                    if (f_func_i.f_operator=="1") {
                         (*f_ptr_i).rhs_ptrs_host.f_func_ptrs[i_func]=(*f_func_i.field_ptr).f_now;
                     };
                     if (f_func_i.f_operator=="laplace") {
@@ -176,9 +172,8 @@ void Evolver::initRHSs() {
         (*f_ptr_i).rhs_ptrs_host.num_terms[0]=num_terms_expl;
         (*f_ptr_i).rhs_ptrs_host.num_terms[1]=num_terms_impl;        
 
-        if (device=="gpu") {
-            
-            // Copy these values to device.
+        // Copy these values to device.
+        if (device=="gpu") {                        
             cudaMalloc(&(*f_ptr_i).rhs_ptrs_dev.num_terms,2*sizeof(int));
             cudaMalloc(&(*f_ptr_i).rhs_ptrs_dev.num_funcs_1term,num_terms*sizeof(int));
             cudaMalloc(&(*f_ptr_i).rhs_ptrs_dev.schemes,num_terms*sizeof(int));
@@ -259,42 +254,47 @@ void Evolver::initFields () {
 
 // ----------------------------------------------------------------------
 // Euler forward scheme to evolve over time.
-void Evolver::EulerForward() {
-    
-    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
-        getRHS(f_ptr_i,0);
-    };
-                
+void Evolver::EulerForward() {        
+
+    getRHS(0);
     fieldsUpdate(0,0,0);
 };
 
 // ----------------------------------------------------------------------
-void Evolver::getRHS(Field* f_ptr_i, int i_field) {
+void Evolver::getRHS(int i_field) {
 
-    allocateRHS(f_ptr_i,i_field);
-
-    evalFieldFuncs(f_ptr_i,i_field);    
-
-    // (*f_ptr_i).export_conf_any((*f_ptr_i).f[0],"phi","0",device,1);
-    // (*f_ptr_i).export_conf_any((*f_ptr_i).laplace,"laplace","0",device,1);    
-    // (*f_ptr_i).export_conf_any((*f_ptr_i).rhs[0],"rhs", "0",device,1);
-    
-    updateRHS(f_ptr_i,i_field);
-
-    // (*f_ptr_i).export_conf_any((*f_ptr_i).f[0],"phi","3",device,1);
-    // (*f_ptr_i).export_conf_any((*f_ptr_i).laplace,"laplace","3",device,1);    
-    // (*f_ptr_i).export_conf_any((*f_ptr_i).rhs[0],"rhs", "3",device,1);        
-    // cout <<"RHS6"<<endl;
-    
-    if ((*f_ptr_i).priority()>0 && (*f_ptr_i).bounCond()=="periodic") {
-        if (device=="cpu") {
-            (*f_ptr_i).applyBounCondPeriCPU((*f_ptr_i).f[i_field]);
-        } else if (device=="gpu"){
-            (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_field]);
+    // Evaluate field functions for priority>0 fields
+    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
+        if ((*f_ptr_i).priority()>0) {
+            evalFieldFuncs(f_ptr_i,i_field);
         };
-    };        
+    };
+
+    // Update fields with priority>0
+    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
+        if ((*f_ptr_i).priority()>0) {
+            allocateRHS(f_ptr_i,i_field);        
+            updateRHS(f_ptr_i,i_field);
+            // Apply periodic boundary condition.
+            if (device=="cpu") {
+                (*f_ptr_i).applyBounCondPeriCPU((*f_ptr_i).f[i_field]);
+            } else if (device=="gpu"){
+                (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_field]);
+            };
+        };
+    };
+
+    // Update fields with priority=0
+    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
+        if ((*f_ptr_i).priority()==0) {
+            evalFieldFuncs(f_ptr_i,i_field);
+            allocateRHS(f_ptr_i,i_field);        
+            updateRHS(f_ptr_i,i_field);
+        };
+    };
 
 };
+
 
 // ----------------------------------------------------------------------
 void Evolver::allocateRHS(Field* f_ptr_t, int i_field) {
@@ -340,7 +340,20 @@ void Evolver::evalFieldFuncs(Field* f_ptr_i, int i_field) {
     for (auto f_func_i : (*f_ptr_i).f_funcs_rhs ) {        
         
         if (f_func_i.f_operator == "1") {
-            (*f_func_i.field_ptr).f_now=(*f_func_i.field_ptr).f[i_field];
+            int Nx=(*f_func_i.field_ptr).gridNumber().x;
+            int Ny=(*f_func_i.field_ptr).gridNumber().y;
+            int Nbx=(*f_func_i.field_ptr).gridNumberBoun().x;
+            int Nby=(*f_func_i.field_ptr).gridNumberBoun().y;
+            if (device=="cpu") {
+                for (int j=0; j<Ny;j++) {
+                    for (int i=0; i<Nx; i++) {
+                        int idx=(j+Nby)*(Nx+2*Nbx)+i+Nbx;
+                        (*f_func_i.field_ptr).f_now[idx]=(*f_func_i.field_ptr).f[i_field][idx];
+                    };
+                };
+            } else if (device=="gpu") {
+                getFNowGPU<<<Ny,Nx>>>((*f_func_i.field_ptr).f_now,(*f_func_i.field_ptr).f[i_field],Nx,Ny,Nbx,Nby);
+            };
         };
         
         if (f_func_i.f_operator == "laplace") {
@@ -373,9 +386,11 @@ void Evolver::updateRHS(Field* f_ptr_t, int i_field) {
     double* lhs_temp;
     
     if ((*f_ptr_t).priority() == 0) {
+        // Fields with time derivatives
         rhs_temp=(*f_ptr_t).rhs[i_field];
         lhs_temp=(*f_ptr_t).lhs[i_field];
     } else {
+        // Fields without time derivative.
         if (device == "cpu") {
             rhs_temp=(*f_ptr_t).f[i_field];
             lhs_temp=(*f_ptr_t).f[i_field];
@@ -402,20 +417,12 @@ void Evolver::updateRHS(Field* f_ptr_t, int i_field) {
             (*f_ptr_t).gridNumberAll()*sizeof(double));
         };
     };
-
-    // (*f_ptr_t).export_conf_any((*f_ptr_t).laplace,"laplace","1",device,1);
-    // (*f_ptr_t).export_conf_any((*f_ptr_t).f[0],"phi","1",device,1);
-    // (*f_ptr_t).export_conf_any((*f_ptr_t).rhs[0],"rhs", "1",device,1);
     
     if (device=="cpu") {
         updateRHSCoreCPU((*f_ptr_t).rhs_ptrs_host, rhs_temp, lhs_temp, Nx, Ny, Nbx, Nby);
     } else if (device=="gpu") {        
         updateRHSCoreGPU<<<Ny,Nx>>>((*f_ptr_t).rhs_ptrs_dev, rhs_temp, lhs_temp, Nx, Ny, Nbx, Nby);
     };
-
-    // (*f_ptr_t).export_conf_any((*f_ptr_t).laplace,"laplace","2",device,1);
-    // (*f_ptr_t).export_conf_any((*f_ptr_t).f[0],"phi","2",device,1);
-    // (*f_ptr_t).export_conf_any((*f_ptr_t).rhs[0],"rhs", "2",device,1);    
     
 };
 
@@ -435,7 +442,7 @@ void Evolver::updateRHSCoreCPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs_t
                     temp=temp*rhs_ptrs.f_func_ptrs[i_func][idx];
                     i_func+=1;
                 };
-                rhs_temp[idx]+=temp;                
+                rhs_temp[idx]+=temp;
             };
             for (int i_term=rhs_ptrs.num_terms[0]; i_term<rhs_ptrs.num_terms[0]+rhs_ptrs.num_terms[1]; i_term++) {
                 double temp=rhs_ptrs.prefactors[i_term];
@@ -454,8 +461,8 @@ void Evolver::updateRHSCoreCPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs_t
 void Evolver::fieldsUpdate(int i_f_new, int i_f_old, int i_df) {
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
         if ((*f_ptr_i).priority() ==0) {
-            if (device=="cpu") {
-                fieldUpdateCPU(f_ptr_i,i_f_new,i_f_old,i_df,time_step);                
+            if (device=="cpu") {            
+                fieldUpdateCPU(f_ptr_i,i_f_new,i_f_old,i_df,time_step);
                 if ((*f_ptr_i).bounCond()=="periodic") {
                     (*f_ptr_i).applyBounCondPeriCPU((*f_ptr_i).f[i_f_new]);
                 };
@@ -464,8 +471,7 @@ void Evolver::fieldsUpdate(int i_f_new, int i_f_old, int i_df) {
                 if ((*f_ptr_i).bounCond()=="periodic") {
                     (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_f_new]);
                 };
-                
-            };            
+            };
         };        
     };
 };

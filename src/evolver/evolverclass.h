@@ -63,7 +63,7 @@ public:
     void initRHSs();
     void initFields();
     void allocateRHS(Field* f_ptr_t, int i_field);
-    void getRHS(Field* f_ptr_i, int i_field);
+    void getRHS(int i_field);
     void evalFieldFuncs(Field* f_ptr_t, int i_field);    
     void updateRHS(Field* f_ptr_t, int i_field);
     void updateRHSCoreCPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs_temp, int Nx, int Ny, int Nbx, int Nby);

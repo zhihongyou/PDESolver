@@ -32,7 +32,7 @@ Field::Field (Mesh* mesh_ptr_t, string name_t, int rank_t, int priority_t, strin
     } else if (traits_host.init_cond=="ones") {
         initFieldConst(1);
     } else if (traits_host.init_cond=="sin") {
-        initFieldSin(1,1,0);        
+        initFieldSin(1,4,0);        
     };
 };
 
