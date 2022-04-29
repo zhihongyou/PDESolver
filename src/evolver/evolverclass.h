@@ -26,6 +26,9 @@ public:
 
     System* system_ptr;
 
+    // Number of copies of fields. Determined by the scheme.
+    int num_field_copy;
+
     // Simulation time:
     // Simulation starts at timeStart and stops at timeStop, with an
     //   initial time step timeStep.
@@ -44,12 +47,10 @@ public:
         time_export=time_export_t;
         scheme=scheme_t;
         device=device_t;
-        if (device=="gpu") {
-            for (auto f_ptr_i : (*system_ptr).field_ptrs )
-            {
-                (*f_ptr_i).updateMainFieldDev();
-                (*f_ptr_i).f_temp_host=new double[(*f_ptr_i).gridNumberAll()];
-            };
+        if (scheme=="EulerForward") {
+            num_field_copy=1;
+        } else if (scheme=="PredictorCorrector") {
+            num_field_copy=2;
         };
     };
 
@@ -58,12 +59,14 @@ public:
     // Methods
     // void getRhsOneOperate (Field* f_t, rhs_operates operate_t);
     // void getRHSs (Field* f_t, std::vector<rhs_operates> phi_rhs);
-    void clearRHS(Field* f_ptr_t, int i_field);
-    void getRHSs(int i_f_copy);
-    void getRHSField(Field* field_ptr_t, int i_field);    
-    void evalOperator(Field* f_ptr_t, field_function f_func_t, double*& f_func_ptr, int i_field);
-    void addRHSTerm(Field* f_ptr_t, int i_field, rhs_term rhs_term_t, double** f_func_ptrs, int N_funcs);
-    void addRHSTermCPU(rhs_term rhs_term_t, double* f_rhs_temp_ptr, double** f_func_ptrs, int N_funcs, int Nx, int Ny, int Nbx, int Nby);    
+    void initEvolver();
+    void initRHSs();
+    void initFields();
+    void allocateRHS(Field* f_ptr_t, int i_field);
+    void getRHS(Field* f_ptr_i, int i_field);
+    void evalFieldFuncs(Field* f_ptr_t, int i_field);    
+    void updateRHS(Field* f_ptr_t, int i_field);
+    void updateRHSCoreCPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs_temp, int Nx, int Ny, int Nbx, int Nby);
     void fieldsUpdate(int i_f_new, int i_f_old, int i_df);
     void fieldUpdateCPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t);
     void fieldUpdateGPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t);    

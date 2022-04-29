@@ -18,7 +18,7 @@ using namespace std;
 
 // =======================================================================
 // Constructor
-Field::Field (Mesh* mesh_ptr_t, std::string name_t, int rank_t, int priority_t, std::string boun_cond_t, std::string init_cond_t, std::string expo_data_t) {
+Field::Field (Mesh* mesh_ptr_t, string name_t, int rank_t, int priority_t, string boun_cond_t, string init_cond_t, string expo_data_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
     traits_host.name=name_t;
     traits_host.rank=rank_t;
@@ -26,6 +26,7 @@ Field::Field (Mesh* mesh_ptr_t, std::string name_t, int rank_t, int priority_t, 
     traits_host.boun_cond=boun_cond_t;
     traits_host.init_cond=init_cond_t;
     traits_host.expo_data=expo_data_t;
+    // Initiate field on host, which will then be copied to f.
     if (traits_host.init_cond=="Gaussian") {
         initFieldGaus(1,1,1);
     } else if (traits_host.init_cond=="ones") {
@@ -33,8 +34,6 @@ Field::Field (Mesh* mesh_ptr_t, std::string name_t, int rank_t, int priority_t, 
     } else if (traits_host.init_cond=="sin") {
         initFieldSin(1,1,0);        
     };
-    cudaMalloc(&f_dev[0], gridNumberAll()*sizeof(double));
-    updateMainFieldDev();
 };
 
 // -----------------------------------------------------------------------
@@ -52,7 +51,7 @@ void Field::initFieldConst(double f_value) {
             f_host[0][idx]=f_value;
         };
     };
-    applyBounCondPeriCPU(0);
+    applyBounCondPeriCPU(f_host[0]);
 };
 
 // -----------------------------------------------------------------------
@@ -72,7 +71,7 @@ void Field::initFieldGaus(double r_center, double r_decay, double gaus_amplitude
             f_host[0][idx]=gaus_amplitude*(exp(-20*r2/r2m));
         };
     };
-    applyBounCondPeriCPU(0);
+    applyBounCondPeriCPU(f_host[0]);
 };
 
 // -----------------------------------------------------------------------
@@ -92,7 +91,7 @@ void Field::initFieldSin(double sin_amplitude=1, int sin_period=1, double sin_ph
             f_host[0][idx]=sin_amplitude*sin(2*M_PI*sin_period*i/Nx)*sin(2*M_PI*sin_period*j/Ny);
         };
     };
-    applyBounCondPeriCPU(0);
+    applyBounCondPeriCPU(f_host[0]);
 };
 
 
@@ -108,16 +107,16 @@ void Field::setFieldConstGPU(double* f_t, double f_val, int Nx, int Ny, int Nbx,
 
 
 // ----------------------------------------------------------------------
-void Field::setRhsTerms(vector<rhs_term> rhs_terms_t) {
-    traits_host.rhs_terms=rhs_terms_t;
+void Field::setRhsTerms(vector<rhsTerm> rhs_terms_t) {
+    rhs_terms=rhs_terms_t;
 };
 
 // =======================================================================
 // Differential operators
 // -----------------------------------------------------------------------
-double* Field::getLaplaceCPU(int i_field, std::string method="new") {
+double* Field::getLaplaceCPU(int i_field, string method="new") {
     int get_new=1;
-    if (method=="old" && laplace != nullptr) {
+    if (method=="old" && laplace != NULL) {
         get_new=0;
     };
 
@@ -137,7 +136,7 @@ double* Field::getLaplaceCPU(int i_field, std::string method="new") {
         for (int j=0; j<Ny;j++) {
             for (int i=0; i<Nx; i++) {            
                 int idx=(j+Nby)*dj+i+Nbx;
-                laplace[idx]=FDMCentralO2I::laplace(f_host[i_field],idx,di,dj,dx,dy);
+                laplace[idx]=FDMCentralO2I::laplace(f[i_field],idx,di,dj,dx,dy);
             };
         };
     };
@@ -145,7 +144,7 @@ double* Field::getLaplaceCPU(int i_field, std::string method="new") {
 };
 
 // -----------------------------------------------------------------------
-double* Field::getLaplaceGPU(int i_field, std::string method="new") {
+double* Field::getLaplaceGPU(int i_field, string method="new") {
     int get_new=1;
     if (method=="old" && laplace != nullptr) {
         get_new=0;
@@ -161,17 +160,16 @@ double* Field::getLaplaceGPU(int i_field, std::string method="new") {
         int Nby=gridNumberBoun().y;
         double dx=gridSize().x;
         double dy=gridSize().y;
-        getLaplaceGPUCore<<<Ny,Nx>>>(laplace,f_dev[i_field],Nx,Ny,Nbx,Nby,dx,dy);
-        // cout <<"Laplace Done!"<<endl;
+        getLaplaceGPUCore<<<Ny,Nx>>>(laplace,f[i_field],Nx,Ny,Nbx,Nby,dx,dy);
     };
     return laplace;
 };
 
 
 // -----------------------------------------------------------------------
-double* Field::getBiLaplaceCPU(int i_field, std::string method="new") {
+double* Field::getBiLaplaceCPU(int i_field, string method="new") {
     int get_new=1;
-    if (method=="old" && laplace != nullptr) {
+    if (method=="old" && bi_laplace != nullptr) {
         get_new=0;
     };
 
@@ -210,14 +208,14 @@ double* Field::getBiLaplaceCPU(int i_field, std::string method="new") {
 
 
 //=======================================================================
-void Field::applyBounCondPeriCPU(int i_field) {
-    applyBounCondPeriAnyCPU(f_host[i_field]);
+void Field::applyBounCondPeriCPU(double* f_t) {
+    applyBounCondPeriAnyCPU(f_t);
 };
 
 //=======================================================================
-void Field::applyBounCondPeriGPU(int i_field) {
+void Field::applyBounCondPeriGPU(double* f_t) {
     applyBounCondPeriAnyGPU<<<gridNumber().y,gridNumber().x>>>
-        (f_dev[i_field],
+        (f_t,
         gridNumber().x,gridNumber().y,
         gridNumberBoun().x,gridNumberBoun().y);
 };
@@ -253,9 +251,9 @@ void Field::applyBounCondPeriAnyCPU(double* f_t) {
 // ----------------------------------------------------------------------
 void Field::export_conf(string str_t, string device, int include_boun=0) {
     if (device=="cpu") {        
-        export_conf_any(f_host[0],name(),str_t, "cpu", include_boun);
+        export_conf_any(f[0],name(),str_t, "cpu", include_boun);
     } else if (device=="gpu") {
-        export_conf_any(f_dev[0],name(),str_t, "gpu", include_boun);
+        export_conf_any(f[0],name(),str_t, "gpu", include_boun);
     };
 }
 
@@ -263,7 +261,7 @@ void Field::export_conf(string str_t, string device, int include_boun=0) {
 void Field::export_conf_any(double* f_t, string f_name, string str_t, string location_t="cpu" , int include_boun=0) {
     ofstream conf_file;
     int PrecData=8;
-    std::string conf_file_name="data/"+f_name+"_"+ str_t + ".dat";
+    string conf_file_name="data/"+f_name+"_"+ str_t + ".dat";
     conf_file.open(conf_file_name.c_str() );
     
     int idx;
@@ -357,10 +355,10 @@ void Field::updateAnyFieldHost (double* f_host_ptr, double * f_dev_ptr) {
 // -------------------------------------------------------------------
 // Copy main field data from CPU to GPU
 void Field::updateMainFieldDev () {
-    if (f_dev[0] == NULL) {
-        cudaMalloc(&f_dev[0], gridNumberAll()*sizeof(double));
+    if (f[0] == NULL) {
+        cudaMalloc(&f[0], gridNumberAll()*sizeof(double));
     };
-    cudaMemcpy(f_dev[0], f_host[0], gridNumberAll()*sizeof(double),cudaMemcpyHostToDevice);
+    cudaMemcpy(f[0], f_host[0], gridNumberAll()*sizeof(double),cudaMemcpyHostToDevice);
 };
 
 // -------------------------------------------------------------------
@@ -369,38 +367,20 @@ void Field::updateMainFieldHost () {
     if (f_host[0] == NULL) {
         f_host[0]=new double[gridNumberAll()];
     };
-    cudaMemcpy(f_host[0], f_dev[0], gridNumberAll()*sizeof(double),cudaMemcpyDeviceToHost);
+    cudaMemcpy(f_host[0], f[0], gridNumberAll()*sizeof(double),cudaMemcpyDeviceToHost);
 };
 
-
-// -----------------------------------------------------------------------
-// Operation struct for a single function call to a field
-struct field_function {
-    std::string f_operator;
-    Field* field_ptr;
-    
-    field_function (std::string f_operator1,Field* field_ptr1) {
-        f_operator=f_operator1;
-        field_ptr=field_ptr1;
-    };
+// ------------------------------------------------------------------
+void Field::allocField (double* f_t, string location) {
+    if (f_t==NULL) {
+        if (location=="cpu") {
+            f_t=new double[gridNumberAll()];
+        } else {
+            cudaMalloc(&f_t, gridNumberAll()*sizeof(double));
+        };
+    };    
 };
 
-
-// -----------------------------------------------------------------------
-// Operation struct for collecting RHS of field.
-struct rhs_term {
-    std::vector<field_function> f_function;
-    double prefactor;
-    std::string scheme;
-    
-    rhs_term(double prefactor_1, std::vector<field_function> f_function1, std::string scheme1) {
-        prefactor=prefactor_1;
-        f_function=f_function1;        
-        scheme=scheme1;
-    };
-};
-
-
-
+// =================================================================
 
 #endif

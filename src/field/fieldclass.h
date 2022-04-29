@@ -7,21 +7,75 @@
 
 using namespace std; 
 
+class Field;
+// -----------------------------------------------------------------------
+struct fieldFunction {
+    // ******************************************************************
+    // Operation struct for a single function call to a field
+    // f_perator is a string used to determine function call
+    // field_ptr is the field on which the f_operator act.
+    // ******************************************************************
+    
+    string f_operator;
+    Field* field_ptr;
+    
+    fieldFunction (string f_operator1, Field* field_ptr1) {
+        f_operator=f_operator1;
+        field_ptr=field_ptr1;
+    };
+};
 
-struct rhs_term;
+// -----------------------------------------------------------------------
+struct rhsTerm {
+    // ******************************************************************
+    // Operation struct for collecting a single RHS term of a field.
+    // f_funcs provides information on all functions of fields, which are
+    //   to be multiplied to form the RHS term.
+    // prefactor is the prefactor of this term.
+    // scheme determines whether this term is calculated explicitly or
+    //   implicitly
+    // ******************************************************************
+    
+    vector<fieldFunction> f_funcs;
+    double prefactor;
+    string scheme;
+    
+    rhsTerm(double prefactor1, vector<fieldFunction> f_funcs1, string scheme1) {
+        prefactor=prefactor1;
+        f_funcs=f_funcs1;
+        scheme=scheme1;
+    };
+};
+
+// ----------------------------------------------------------------------
+struct rhsPtrs {
+    // ******************************************************************
+    // Struct that determines the RHS of a field
+    // num_terms is the number of terms on the RHS
+    // prefactors are collections of prefactors of each term.
+    // num_func_1term is the number of fields in each term
+    // f_func_ptrs collect all pointers on the RHS.
+    // ******************************************************************
+    int* num_terms;
+    double* prefactors;
+    int* num_funcs_1term;
+    double** f_func_ptrs;
+    int* schemes;
+};
+
+
 // ======================================================================
 // Data structure to store the traits of fields.
 struct FieldTraits {
-    std::string name = "fieldTemp";
+    string name = "fieldTemp";
     int rank=0;
     int priority=1;
-    std::string location = "both";
-    std::string boun_cond = "periodic";
-    std::string init_cond = "none";
-    std::string expo_data = "on";
-    std::string equation = "";
-    Mesh* mesh_ptr=NULL;
-    std::vector<rhs_term> rhs_terms;
+    string location = "both";
+    string boun_cond = "periodic";
+    string init_cond = "none";
+    string expo_data = "on";
+    string equation = "";
+    Mesh* mesh_ptr=NULL;        
 };
 
 // =======================================================================
@@ -31,46 +85,58 @@ class Field {
     public:
 
     FieldTraits traits_host;
-    FieldTraits* traits_dev_ptr;
+    FieldTraits traits_dev_ptr;
     
-    // Field data
-    double* f_host[5]={NULL,NULL,NULL,NULL,NULL};
-    double* f_dev[5]={NULL,NULL,NULL,NULL,NULL};
-    double* f_rhs[5]={NULL,NULL,NULL,NULL,NULL};
-    double* f_lhs[5]={NULL,NULL,NULL,NULL,NULL};
+    vector<rhsTerm> rhs_terms;
+    // These will store main pointers to field functions.
+    vector<fieldFunction> f_funcs_rhs;
+    // These will store device pointers to field functions.
+    rhsPtrs rhs_ptrs_host;
+    rhsPtrs rhs_ptrs_dev;
+    
     // Use to store temp field to write to file;
+    double* f_host[5]={NULL,NULL,NULL,NULL,NULL};
     double* f_temp_host=NULL;
     
-    // Operators
-    double * d1xf=NULL;
-    double * d1yf=NULL;
-    double * d1zf=NULL;
-    double * d1x1yf=NULL;
-    double * d1x1zf=NULL;
-    double * d1y1zf=NULL;
-    double * d2xf=NULL;
-    double * d2yf=NULL;
-    double * d2zf=NULL;
-    double * d2x2yf=NULL;
-    double * d2x2zf=NULL;
-    double * d2y2zf=NULL;
-    double * one_over_f=NULL;
-    double * laplace=NULL;
-    double * bi_laplace=NULL;
-    double * laplace_dev=NULL;
-    double * bi_laplace_dev=NULL;
+    // Field data: those are to be stored on host or device depending
+    //   on the "device" used.
+    // In case "GPU" is used, these are host pointers to device data.
+    // Host can use f[0][idx], but device cannot.
+    // Instead, device can only use f_dp[0][idx], where f_dp is a device
+    //   pointer point to device data.
+    double* f[5]={NULL,NULL,NULL,NULL,NULL};
+    double* rhs[5]={NULL,NULL,NULL,NULL,NULL};
+    double* lhs[5]={NULL,NULL,NULL,NULL,NULL};    
     
+    // Operators
+    double* f_now=NULL;
+    double* d1x=NULL;
+    double* d1y=NULL;
+    double* d1z=NULL;
+    double* d1x1y=NULL;
+    double* d1x1z=NULL;
+    double* d1y1z=NULL;
+    double* d2x=NULL;
+    double* d2y=NULL;
+    double* d2z=NULL;
+    double* d2x2y=NULL;
+    double* d2x2z=NULL;
+    double* d2y2z=NULL;
+    double* one_over_f=NULL;
+    double* laplace=NULL;
+    double* bi_laplace=NULL;    
     
     // ===================================================================
     // Methods
     
     // ===================================================================
     // Constructor
-    Field (Mesh* mesh_ptr_t, std::string name_t, int rank_t, int priority_t, std::string boun_cond_t, std::string init_cond_t, std::string expo_data_t);    
+    Field (Mesh* mesh_ptr_t, string name_t, int rank_t, int priority_t, string boun_cond_t, string init_cond_t, string expo_data_t);    
     
     // ------------------------------------------------------------------
     // Get rhs
     void getRHS(int i_f_copy);
+    void allocField (double* f_t, string location);
     // -------------------------------------------------------------------
     // Field initialization
     // Constant field
@@ -85,17 +151,17 @@ class Field {
     void setFieldConstCPU(double* f_t, double f_val, int Nx, int Ny, int Nbx, int Nby);
     void setFieldConstGPU(double* f_t, double f_val, int Nx, int Ny, int Nbx, int Nby);
 
-    void setRhsTerms(vector<rhs_term> rhs_terms_t);
+    void setRhsTerms(vector<rhsTerm> rhs_terms_t);
     // ===================================================================
     // Differential operators
-    double* getLaplaceCPU(int i_field,std::string method);
-    double* getBiLaplaceCPU(int i_field,std::string method);
-    double* getLaplaceGPU(int i_field, std::string method);    
+    double* getLaplaceCPU(int i_field,string method);
+    double* getBiLaplaceCPU(int i_field,string method);
+    double* getLaplaceGPU(int i_field, string method);    
 
     // -------------------------------------------------------------------
     // Field boundary condition    
-    void applyBounCondPeriCPU(int i_field);
-    void applyBounCondPeriGPU(int i_field);
+    void applyBounCondPeriCPU(double* f_t);
+    void applyBounCondPeriGPU(double* f_t);
     void applyBounCondPeriAnyCPU(double* f_t);
 
     // -------------------------------------------------------------------
@@ -139,8 +205,8 @@ class Field {
     Mesh* meshPtr() {
         return traits_host.mesh_ptr;
     };    
-    vector<rhs_term> rhsTerms() {
-        return traits_host.rhs_terms;
+    vector<rhsTerm> rhsTerms() {
+        return rhs_terms;
     };
     int gridNumberAll() {
         return ((*traits_host.mesh_ptr).host.grid_number.x+
@@ -169,7 +235,10 @@ class Field {
     };
     Vector3<double> gridSize () {
         return (*traits_host.mesh_ptr).host.grid_size;
-    };    
+    };
+    rhsPtrs fieldFuncPtrs () {
+        return rhs_ptrs_host;
+    };
     
     // ===================================================================
 };

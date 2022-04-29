@@ -1,8 +1,8 @@
 
 dire0='/home/you/Dropbox/Apps/github/PDESolver/data/';
 
-t0=0;
-dt=5;
+t0=1;
+dt=1;
 ts=100;
 M=64+6;
 N=M;
@@ -23,24 +23,31 @@ for t=t0:dt:ts
     end
     
     clf;
+    % figure;
     phi=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
-    rhs=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
-    lapl=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
-    subplot(2,3,1)
+    rhs=reshape(importdata([dire0 'rhs_' num2str(t) '.dat']),[N,M])';
+    lapl=reshape(importdata([dire0 'laplace_' num2str(t) '.dat']),[N,M])';
+    subplot(1,3,1)
     imagesc(phi);
-    subplot(2,3,2)
+    title(num2str(t));
+    subplot(1,3,2)
     imagesc(rhs);
-    subplot(2,3,4)
+    subplot(1,3,3)
     imagesc(lapl);
-    subplot(2,3,5)
-    subplot(2,3,3)
+    rhs1=0*phi+2.5*(d2xO4(phi,1)+d2yO4(phi,1));
+    lapl1=0*phi+1*(d2xO4(phi,1)+d2yO4(phi,1));
+    % subplot(2,3,1)
+    % surf(lapl);
+    % subplot(2,3,2)
+    % surf(lapl1);
+    % subplot(2,3,3)
+    % surf(lapl-lapl1);
+    % subplot(2,3,4)
+    % surf(rhs);
+    % subplot(2,3,5)
     % surf(rhs1);
-    % rho=reshape(importdata([dire0 'rhs_' num2str(t) '.dat']),[N,M])';
-    % rhs0=reshape(importdata([dire0 'rhs0_' num2str(t) '.dat']),[N,M])';
-    % rhs1=reshape(importdata([dire0 'rhs1_' num2str(t) '.dat']),[N,M])';
-    % lapl=reshape(importdata([dire0 'laplace_' num2str(t) '.dat']),[N,M])';
-    % lapl0=reshape(importdata([dire0 'laplace0_' num2str(t) '.dat']),[N,M])';
-    % lapl1=reshape(importdata([dire0 'laplace1_' num2str(t) '.dat']),[N,M])';
+    % subplot(2,3,6)
+    % surf(rhs-rhs1)
     
 
     % clf;
@@ -73,15 +80,22 @@ for t=t0:dt:ts
 
     pause(tPaus);
 end
-
-% lapl=0*phi(4:67,4:67)+2.5*(d2xO4(phi(4:67,4:67),1)+d2yO4(phi(4:67,4:67),1));
-% lapl=0*phi+2.5*(d2xO4(phi,1)+d2yO4(phi,1));
-% subplot(1,3,1)
-% surf(rhs);
-% subplot(1,3,2)
+% figure;
+% % lapl=0*phi(4:67,4:67)+2.5*(d2xO4(phi(4:67,4:67),1)+d2yO4(phi(4:67,4:67),1));
+% rhs1=0*phi+2.5*(d2xO4(phi,1)+d2yO4(phi,1));
+% lapl1=0*phi+1*(d2xO4(phi,1)+d2yO4(phi,1));
+% subplot(2,3,1)
 % surf(lapl);
-% subplot(1,3,3)
-% surf(rhs-lapl)
+% subplot(2,3,2)
+% surf(lapl1);
+% subplot(2,3,3)
+% surf(lapl-lapl1);
+% subplot(2,3,4)
+% surf(rhs);
+% subplot(2,3,5)
+% surf(rhs1);
+% subplot(2,3,6)
+% surf(rhs-rhs1)
 
 % subplot(1,3,1)
 % surf(phi);
