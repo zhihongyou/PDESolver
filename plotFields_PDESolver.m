@@ -2,8 +2,8 @@
 dire0='/home/you/Dropbox/Apps/github/PDESolver/data/';
 
 t0=1;
-dt=1;
-ts=100;
+dt=2;
+ts=300;
 M=64+6;
 N=M;
 dn=1;
@@ -24,43 +24,20 @@ for t=t0:dt:ts
     
     clf;
     % figure;
-    phi=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
-    mu=reshape(importdata([dire0 'mu_' num2str(t) '.dat']),[N,M])';
-    muLapl=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
-    dtphi=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
-    phi=phi(4:67,4:67);
-    mu=mu(4:67,4:67);
-    dtphi=dtphi(4:67,4:67);
-    mu1=-1*(d2xO4(phi,1)+d2yO4(phi,1))-0.2*phi+phi.^3;
-    dtphi1=2.5*(d2xO4(mu,1)+d2yO4(mu,1));
-    subplot(2,3,1)
-    imagesc(phi);
-    title(num2str(t));
-    subplot(2,3,2)
-    imagesc(mu);
-    subplot(2,3,3)
-    surf(dtphi-dtphi1);
-    subplot(2,3,4)
-    surf(mu);
-    subplot(2,3,5)
-    surf(mu1);
-    subplot(2,3,6)
-    surf(mu-mu1);
-    % rhs1=0*phi+2.5*(d2xO4(phi,1)+d2yO4(phi,1));
-    % lapl1=0*phi+1*(d2xO4(phi,1)+d2yO4(phi,1));
-    % subplot(2,3,1)
-    % surf(lapl);
-    % subplot(2,3,2)
-    % surf(lapl1);
-    % subplot(2,3,3)
-    % surf(lapl-lapl1);
-    % subplot(2,3,4)
-    % surf(rhs);
-    % subplot(2,3,5)
-    % surf(rhs1);
-    % subplot(2,3,6)
-    % surf(rhs-rhs1)
+    phia=reshape(importdata([dire0 'phia_' num2str(t) '.dat']),[N,M])';
+    mua=reshape(importdata([dire0 'mua_' num2str(t) '.dat']),[N,M])';
+    phib=reshape(importdata([dire0 'phib_' num2str(t) '.dat']),[N,M])';
+    mub=reshape(importdata([dire0 'mub_' num2str(t) '.dat']),[N,M])';
+    phia=phia(4:67,4:67);
+    mua=mua(4:67,4:67);
+    phib=phib(4:67,4:67);
+    mub=mub(4:67,4:67);
     
+    subplot(1,2,1)
+    imagesc(phia);
+    subplot(1,2,2)
+    imagesc(phib);
+    title(num2str(t));    
 
     % clf;
     if plotType==0

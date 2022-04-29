@@ -29,12 +29,6 @@ __global__ void testGPU (rhsPtrs rhs_ptrs_dev, int a) {
     // f_dev[0][10]=1000;
 };
 
-__global__ void testGPU1 (double* prefactors) {
-    // rhs_ptrs_dev.num_terms[0]+=0;
-    prefactors[0]+=11;
-    // rhs_ptrs_dev.num_funcs_1term[0]+=12;
-};
-
 
 // ======================================================================
 int main() {
@@ -46,29 +40,45 @@ int main() {
     mySys.mesh_ptr=&mesh;
     
     // Creating fields.
-    Field mu(&mesh, "mu", 0, 1, "periodic", "Gaussian", "on");
-    Field phi(&mesh, "phi", 0, 0, "periodic", "sin", "on");
+    Field mua(&mesh, "mua", 0, 1, "periodic", "Gaussian", "on");
+    Field phia(&mesh, "phia", 0, 0, "periodic", "sin", "on");
+    Field mub(&mesh, "mub", 0, 1, "periodic", "Gaussian", "on");
+    Field phib(&mesh, "phib", 0, 0, "periodic", "sin", "on");
 
     // Set field equations.
-    mu.setRhsTerms({
-        {-1,{{"laplace",&phi}},"explicit"},
-        {-0.2,{{"1",&phi}},"explicit"},
-        {1,{{"1",&phi},{"1",&phi},{"1",&phi}},"explicit"}
+    mua.setRhsTerms({
+        {-1,{{"laplace",&phia}},"explicit"},
+        {-0.05,{{"1",&phia}},"explicit"},
+        {1,{{"1",&phia},{"1",&phia},{"1",&phia}},"explicit"}
+    });
+
+    mub.setRhsTerms({
+        {-1,{{"laplace",&phib}},"explicit"},
+        {-0.05,{{"1",&phib}},"explicit"},
+        {1,{{"1",&phib},{"1",&phib},{"1",&phib}},"explicit"}
     });
     
-    phi.setRhsTerms({
-        {2.5,{{"laplace",&mu}},"explicit"}
+    phia.setRhsTerms({
+        {1,{{"laplace",&mua}},"explicit"},
+        {-0.1,{{"laplace",&phib}},"explicit"}
+    });
+
+    phib.setRhsTerms({
+        {1,{{"laplace",&mub}},"explicit"},
+        {0.1,{{"laplace",&phia}},"explicit"}
     });
     
     // Add fields to the system.
-    mySys.field_ptrs.push_back(&mu);
-    mySys.field_ptrs.push_back(&phi);
+    mySys.field_ptrs.push_back(&mua);
+    mySys.field_ptrs.push_back(&mub);
+    mySys.field_ptrs.push_back(&phia);
+    mySys.field_ptrs.push_back(&phib);
     // Print system information.
     // mySys.printSysInfo();
     
     // Creating an evolver:
     string device="gpu";
-    Evolver evolver(&mySys,0,10000,0.01,100,"EulerForward",device);    
+    Evolver evolver(&mySys,0,30000,0.02,100,"EulerForward",device);    
     evolver.run();
     
     
