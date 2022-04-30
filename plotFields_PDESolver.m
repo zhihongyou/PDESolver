@@ -2,8 +2,8 @@
 dire0='/home/you/Dropbox/Apps/github/PDESolver/data/';
 
 t0=1;
-dt=2;
-ts=300;
+dt=1;
+ts=100;
 M=64+6;
 N=M;
 dn=1;
@@ -26,8 +26,8 @@ for t=t0:dt:ts
     % figure;
     phia=reshape(importdata([dire0 'phia_' num2str(t) '.dat']),[N,M])';
     mua=reshape(importdata([dire0 'mua_' num2str(t) '.dat']),[N,M])';
-    phib=reshape(importdata([dire0 'phib_' num2str(t) '.dat']),[N,M])';
-    mub=reshape(importdata([dire0 'mub_' num2str(t) '.dat']),[N,M])';
+    phib=reshape(importdata([dire0 'phia_' num2str(t) '.dat']),[N,M])';
+    mub=reshape(importdata([dire0 'mua_' num2str(t) '.dat']),[N,M])';
     phia=phia(4:67,4:67);
     mua=mua(4:67,4:67);
     phib=phib(4:67,4:67);

@@ -33,6 +33,8 @@ void Evolver::run() {
         // Move a step forward.
         if (scheme=="EulerForward") {
             EulerForward();
+        } else if (scheme=="RK4") {
+            RK4();
         };
 
         // Reach export time.
@@ -193,13 +195,18 @@ void Evolver::initRHSs() {
 // Location of memory depends on device of the evolver.
 void Evolver::initFields () {    
 
-    // Initiate fields.
+    // Initiate fields and LHS&RHS
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
         int num_grid=(*f_ptr_i).gridNumberAll();
         if (device=="cpu") {            
             for (int i_f_copy=0; i_f_copy<num_field_copy; i_f_copy++) {
                 (*f_ptr_i).f[i_f_copy]=new double[num_grid];
+                if ((*f_ptr_i).priority()==0) {
+                    (*f_ptr_i).rhs[i_f_copy]=new double[num_grid];
+                    (*f_ptr_i).lhs[i_f_copy]=new double[num_grid];
+                };
             };
+            // Copy data from f_host to device
             for (int idx=0; idx<num_grid; idx++) {
                 (*f_ptr_i).f[0][idx]=(*f_ptr_i).f_host[0][idx];
             };
@@ -208,6 +215,10 @@ void Evolver::initFields () {
             (*f_ptr_i).f_temp_host=new double[(*f_ptr_i).gridNumberAll()];
             for (int i_f_copy=0; i_f_copy<num_field_copy; i_f_copy++) {
                 cudaMalloc(&(*f_ptr_i).f[i_f_copy], num_grid*sizeof(double));
+                if ((*f_ptr_i).priority()==0) {
+                    cudaMalloc(&(*f_ptr_i).rhs[i_f_copy], num_grid*sizeof(double));
+                    cudaMalloc(&(*f_ptr_i).lhs[i_f_copy], num_grid*sizeof(double));
+                };
             };
             cudaMemcpy((*f_ptr_i).f[0], (*f_ptr_i).f_host[0], num_grid*sizeof(double),cudaMemcpyHostToDevice);            
         };
@@ -248,7 +259,7 @@ void Evolver::initFields () {
                 };
             };
         };
-    };                
+    };
     
 };
 
@@ -257,7 +268,24 @@ void Evolver::initFields () {
 void Evolver::EulerForward() {        
 
     getRHS(0);
-    fieldsUpdate(0,0,0);
+    // Update fields with zero priority.
+    fieldsUpdate(0, 0, 0, time_step);
+};
+
+// ----------------------------------------------------------------------
+// Euler forward scheme to evolve over time.
+void Evolver::RK4() {    
+    getRHS(0);
+    fieldsUpdate(1, 0, 0, 0.5*time_step);
+    getRHS(1);
+    fieldsUpdate(2, 0, 1, 0.5*time_step);
+    getRHS(2);
+    fieldsUpdate(3, 0, 2, time_step);
+    getRHS(3);
+    fieldsUpdate(0, 0, 0, 1.0/6.0*time_step);
+    fieldsUpdate(0, 0, 1, 1.0/3.0*time_step);
+    fieldsUpdate(0, 0, 2, 1.0/3.0*time_step);
+    fieldsUpdate(0, 0, 3, 1.0/6.0*time_step);
 };
 
 // ----------------------------------------------------------------------
@@ -273,7 +301,6 @@ void Evolver::getRHS(int i_field) {
     // Update fields with priority>0
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
         if ((*f_ptr_i).priority()>0) {
-            allocateRHS(f_ptr_i,i_field);        
             updateRHS(f_ptr_i,i_field);
             // Apply periodic boundary condition.
             if (device=="cpu") {
@@ -285,52 +312,13 @@ void Evolver::getRHS(int i_field) {
     };
 
     // Update fields with priority=0
-    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
+    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
         if ((*f_ptr_i).priority()==0) {
-            evalFieldFuncs(f_ptr_i,i_field);
-            allocateRHS(f_ptr_i,i_field);        
+            evalFieldFuncs(f_ptr_i,i_field);            
             updateRHS(f_ptr_i,i_field);
         };
     };
 
-};
-
-
-// ----------------------------------------------------------------------
-void Evolver::allocateRHS(Field* f_ptr_t, int i_field) {
-    int Nx=(*f_ptr_t).gridNumber().x;
-    int Ny=(*f_ptr_t).gridNumber().y;
-    int Nbx=(*f_ptr_t).gridNumberBoun().x;
-    int Nby=(*f_ptr_t).gridNumberBoun().y;
-    if ((*f_ptr_t).priority()==0) {
-        if (device=="cpu") {
-            if ((*f_ptr_t).rhs[i_field] == NULL) {
-                (*f_ptr_t).rhs[i_field]=new double[(*f_ptr_t).gridNumberAll()];
-            };
-            if ((*f_ptr_t).lhs[i_field] == NULL) {
-                (*f_ptr_t).lhs[i_field]=new double[(*f_ptr_t).gridNumberAll()];
-            };
-        } else if (device=="gpu") {
-            if ((*f_ptr_t).rhs[i_field] == NULL) {
-                cudaMalloc(&(*f_ptr_t).rhs[i_field],
-                (*f_ptr_t).gridNumberAll()*sizeof(double));
-            };
-            if ((*f_ptr_t).lhs[i_field] == NULL) {
-                cudaMalloc(&(*f_ptr_t).lhs[i_field],
-                (*f_ptr_t).gridNumberAll()*sizeof(double));
-            };
-        };
-        
-    } else {
-        if ((*f_ptr_t).f[i_field] == NULL) {
-            if (device=="cpu") {
-                (*f_ptr_t).f[i_field]=new double[(*f_ptr_t).gridNumberAll()];
-            } else if (device=="gpu") {            
-                cudaMalloc(&(*f_ptr_t).f[i_field],
-                (*f_ptr_t).gridNumberAll()*sizeof(double));
-            };
-        };
-    };
 };
 
 
@@ -458,16 +446,16 @@ void Evolver::updateRHSCoreCPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs_t
 
 
 // ----------------------------------------------------------------------
-void Evolver::fieldsUpdate(int i_f_new, int i_f_old, int i_df) {
+void Evolver::fieldsUpdate(int i_f_new, int i_f_old, int i_df, double time_step_t) {
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
         if ((*f_ptr_i).priority() ==0) {
             if (device=="cpu") {            
-                fieldUpdateCPU(f_ptr_i,i_f_new,i_f_old,i_df,time_step);
+                fieldUpdateCPU(f_ptr_i,i_f_new,i_f_old,i_df,time_step_t);
                 if ((*f_ptr_i).bounCond()=="periodic") {
                     (*f_ptr_i).applyBounCondPeriCPU((*f_ptr_i).f[i_f_new]);
                 };
             } else if (device=="gpu") {
-                fieldUpdateGPU(f_ptr_i,i_f_new,i_f_old,i_df,time_step);
+                fieldUpdateGPU(f_ptr_i,i_f_new,i_f_old,i_df,time_step_t);
                 if ((*f_ptr_i).bounCond()=="periodic") {
                     (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_f_new]);
                 };

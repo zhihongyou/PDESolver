@@ -23,11 +23,11 @@
 
 using namespace std;
 
-__global__ void testGPU (rhsPtrs rhs_ptrs_dev, int a) {
-    rhs_ptrs_dev.num_terms[0]+=a;
+// __global__ void testGPU (rhsPtrs rhs_ptrs_dev, int a) {
+    // rhs_ptrs_dev.num_terms[0]+=a;
     // rhs_ptrs_dev.
     // f_dev[0][10]=1000;
-};
+// };
 
 
 // ======================================================================
@@ -48,7 +48,7 @@ int main() {
     // Set field equations.
     mua.setRhsTerms({
         {-1,{{"laplace",&phia}},"explicit"},
-        {-0.05,{{"1",&phia}},"explicit"},
+        {-0.2,{{"1",&phia}},"explicit"},
         {1,{{"1",&phia},{"1",&phia},{"1",&phia}},"explicit"}
     });
 
@@ -59,8 +59,7 @@ int main() {
     });
     
     phia.setRhsTerms({
-        {1,{{"laplace",&mua}},"explicit"},
-        {-0.1,{{"laplace",&phib}},"explicit"}
+        {1,{{"laplace",&mua}},"explicit"}
     });
 
     phib.setRhsTerms({
@@ -70,17 +69,19 @@ int main() {
     
     // Add fields to the system.
     mySys.field_ptrs.push_back(&mua);
-    mySys.field_ptrs.push_back(&mub);
+    // mySys.field_ptrs.push_back(&mub);
     mySys.field_ptrs.push_back(&phia);
-    mySys.field_ptrs.push_back(&phib);
+    // mySys.field_ptrs.push_back(&phib);
     // Print system information.
     // mySys.printSysInfo();
     
     // Creating an evolver:
     string device="gpu";
-    Evolver evolver(&mySys,0,30000,0.02,100,"EulerForward",device);    
+    // Evolver evolver(&mySys,0,10000,0.02,100,"EulerForward",device);
+    Evolver evolver(&mySys,0,10000,0.02,100,"RK4",device);
     evolver.run();
-    
+
+    // -----------------------------------------------------------
     
     return 0;
 };

@@ -48,9 +48,13 @@ public:
         scheme=scheme_t;
         device=device_t;
         if (scheme=="EulerForward") {
-            num_field_copy=1;
+            num_field_copy=1;            
         } else if (scheme=="PredictorCorrector") {
             num_field_copy=2;
+        } else if (scheme=="RK4") {
+            num_field_copy=4;
+        } else if (scheme=="RKC2") {
+            num_field_copy=4;
         };
     };
 
@@ -62,15 +66,15 @@ public:
     void initEvolver();
     void initRHSs();
     void initFields();
-    void allocateRHS(Field* f_ptr_t, int i_field);
     void getRHS(int i_field);
     void evalFieldFuncs(Field* f_ptr_t, int i_field);    
     void updateRHS(Field* f_ptr_t, int i_field);
     void updateRHSCoreCPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs_temp, int Nx, int Ny, int Nbx, int Nby);
-    void fieldsUpdate(int i_f_new, int i_f_old, int i_df);
+    void fieldsUpdate(int i_f_new, int i_f_old, int i_df, double time_step_t);
     void fieldUpdateCPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t);
     void fieldUpdateGPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t);    
     void EulerForward();
+    void RK4();
     void run();
     void showProgress();
     
