@@ -1,5 +1,5 @@
-#ifndef FINITEDIFFERENCECENTRALO4ISOTROPIC_H
-#define FINITEDIFFERENCECENTRALO4ISOTROPIC_H
+#ifndef FINITEDIFFERENCECENTRALO4ISOTROPIC2D_H
+#define FINITEDIFFERENCECENTRALO4ISOTROPIC2D_H
 
 #ifdef __CUDACC__
 #define CUDA_CALLABLE_MEMBER __host__ __device__
@@ -10,12 +10,12 @@
 #include "vector3class.h"
 #include "finiteDifference.h"
 
-class FDMCentralO4I: public FiniteDifference {
+class FDMCentralO4Iso2D: public FiniteDifference {
     
 public:
 
     string name() {
-        string name_t="CentralDifferenceO4I";
+        string name_t="CentralDifferenceO4Iso2D";
         return name_t;
     };
     

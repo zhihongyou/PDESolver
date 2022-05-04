@@ -1,9 +1,9 @@
 
 dire0='/home/you/Dropbox/Apps/github/PDESolver/data/';
 
-t0=1;
+t0=0;
 dt=1;
-ts=100;
+ts=300;
 M=64+6;
 N=M;
 dn=1;
@@ -32,12 +32,18 @@ for t=t0:dt:ts
     mua=mua(4:67,4:67);
     phib=phib(4:67,4:67);
     mub=mub(4:67,4:67);
+    mua1=-(d2xO4(phia,1)+d2yO4(phia,1))-0.2*phia+phia.^3;
     
-    subplot(1,2,1)
+    subplot(2,2,1)
     imagesc(phia);
-    subplot(1,2,2)
-    imagesc(phib);
-    title(num2str(t));    
+    title(num2str(t));
+    subplot(2,2,2)
+    surf(mua);
+    subplot(2,2,3)
+    surf(mua1);
+    subplot(2,2,4)
+    surf(mua-mua1);
+    
 
     % clf;
     if plotType==0

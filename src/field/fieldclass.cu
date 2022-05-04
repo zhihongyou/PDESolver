@@ -28,11 +28,11 @@ Field::Field (Mesh* mesh_ptr_t, string name_t, int rank_t, int priority_t, strin
     traits_host.expo_data=expo_data_t;
     // Initiate field on host, which will then be copied to f.
     if (traits_host.init_cond=="Gaussian") {
-        initFieldGaus(1,1,1);
+        initFieldGaus(0,10,1);
     } else if (traits_host.init_cond=="ones") {
         initFieldConst(1);
     } else if (traits_host.init_cond=="sin") {
-        initFieldSin(1,4,0);        
+        initFieldSin(0.01,4,0);        
     };
 };
 
@@ -63,12 +63,14 @@ void Field::initFieldGaus(double r_center, double r_decay, double gaus_amplitude
     int Ny=gridNumber().y;
     int Nbx=gridNumberBoun().x;
     int Nby=gridNumberBoun().y;
-    double r2m=0.25*Nx*Nx+0.25*Ny*Ny;    
+    double dx2=gridSize().x*gridSize().x;
+    double dy2=gridSize().y*gridSize().y;
+    double rd2=r_decay*r_decay;
     for (int j=0; j<Ny; j++) {
         for (int i=0; i<Nx; i++) {
             int idx=(j+Nby)*(Nx+2*Nbx)+i+Nbx;
-            double r2=(i-0.5*Nx)*(i-0.5*Nx)+(j-0.5*Ny)*(j-0.5*Ny);
-            f_host[0][idx]=gaus_amplitude*(exp(-20*r2/r2m));
+            double r2=dx2*(i-0.5*Nx)*(i-0.5*Nx)+dy2*(j-0.5*Ny)*(j-0.5*Ny);
+            f_host[0][idx]=gaus_amplitude*(exp(-r2/rd2));
         };
     };
     applyBounCondPeriCPU(f_host[0]);
@@ -136,7 +138,7 @@ double* Field::getLaplaceCPU(int i_field, string method="new") {
         for (int j=0; j<Ny;j++) {
             for (int i=0; i<Nx; i++) {            
                 int idx=(j+Nby)*dj+i+Nbx;
-                laplace[idx]=FDMCentralO2I::laplace(f[i_field],idx,di,dj,dx,dy);
+                laplace[idx]=FDM_ptrs[FDM_idx]->laplace(f[i_field],idx,di,dj,dx,dy);
             };
         };
     };
@@ -160,7 +162,7 @@ double* Field::getLaplaceGPU(int i_field, string method="new") {
         int Nby=gridNumberBoun().y;
         double dx=gridSize().x;
         double dy=gridSize().y;
-        getLaplaceGPUCore<<<Ny,Nx>>>(laplace,f[i_field],Nx,Ny,Nbx,Nby,dx,dy);
+        getLaplaceGPUCore<<<Ny,Nx>>>(laplace,f[i_field],FDM_ptrs,FDM_idx,Nx,Ny,Nbx,Nby,dx,dy);
     };
     return laplace;
 };
@@ -189,19 +191,31 @@ double* Field::getBiLaplaceCPU(int i_field, string method="new") {
         for (int j=0; j<Ny;j++) {
             for (int i=0; i<Nx; i++) {            
                 int idx=(j+Nby)*dj+i+Nbx;
-                bi_laplace[idx]=1.0/(dx*dx*dy*dy)*( 779.0/45.0*f_host[i_field][idx]
-			  -191.0/45.0*( f_host[i_field][idx+di] + f_host[i_field][idx-di] + f_host[i_field][idx+dj] + f_host[i_field][idx-dj] )
-			  -187.0/90.0*( f_host[i_field][idx+di+dj] + f_host[i_field][idx-di+dj] + f_host[i_field][idx+di-dj] + f_host[i_field][idx-di-dj] )
-			  +7.0/30.0*( f_host[i_field][idx+2*di] + f_host[i_field][idx-2*di] + f_host[i_field][idx+2*dj] + f_host[i_field][idx-2*dj] )
-			  +47.0/45.0*( f_host[i_field][idx+di+2*dj] + f_host[i_field][idx-di+2*dj] + f_host[i_field][idx+di-2*dj] + f_host[i_field][idx-di-2*dj]
-				       + f_host[i_field][idx+2*di+dj] + f_host[i_field][idx-2*di+dj] + f_host[i_field][idx+2*di-dj] + f_host[i_field][idx-2*di-dj] )
-			  -29.0/180.0*( f_host[i_field][idx+2*di+2*dj] + f_host[i_field][idx-2*di+2*dj] + f_host[i_field][idx+2*di-2*dj] + f_host[i_field][idx-2*di-2*dj] )
-			  +1.0/45.0*( f_host[i_field][idx+3*di] + f_host[i_field][idx-3*di] + f_host[i_field][idx+3*dj] + f_host[i_field][idx-3*dj] )
-			  -17.0/180.0*( f_host[i_field][idx+di+3*dj] + f_host[i_field][idx-di+3*dj] + f_host[i_field][idx+di-3*dj] + f_host[i_field][idx-di-3*dj]
-				       + f_host[i_field][idx+3*di+dj] + f_host[i_field][idx-3*di+dj] + f_host[i_field][idx+3*di-dj] + f_host[i_field][idx-3*di-dj] )
-			  );
+                bi_laplace[idx] = FDM_ptrs[FDM_idx]->bi_laplace(f[i_field],idx,di,dj,dx,dy);
             };
         };
+    };
+    return bi_laplace;
+};
+
+// -----------------------------------------------------------------------
+double* Field::getBiLaplaceGPU(int i_field, string method="new") {
+    int get_new=1;
+    if (method=="old" && bi_laplace != nullptr) {
+        get_new=0;
+    };
+    
+    if (get_new==1) {
+        if (bi_laplace == NULL) {
+            cudaMalloc(&bi_laplace, gridNumberAll()*sizeof(double));
+        };
+        int Nx=gridNumber().x;
+        int Ny=gridNumber().y;
+        int Nbx=gridNumberBoun().x;
+        int Nby=gridNumberBoun().y;
+        double dx=gridSize().x;
+        double dy=gridSize().y;
+        getBiLaplaceGPUCore<<<Ny,Nx>>>(bi_laplace,f[i_field],FDM_ptrs,FDM_idx,Nx,Ny,Nbx,Nby,dx,dy);
     };
     return bi_laplace;
 };

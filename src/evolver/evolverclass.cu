@@ -193,7 +193,28 @@ void Evolver::initRHSs() {
 // ----------------------------------------------------------------------
 // Allocate memory for fields and field functions.
 // Location of memory depends on device of the evolver.
-void Evolver::initFields () {    
+void Evolver::initFields () {
+    
+    // Set finite difference method
+    // Get instances of finite difference schemes
+    FDM_ptrs=new FiniteDifference*[2];
+    if (FDScheme=="CentralDifferenceO2I") {
+        FDM_idx=0;
+    } else if (FDScheme=="CentralDifferenceO4I") {
+        FDM_idx=1;
+    };    
+    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
+        (*f_ptr_i).FDM_idx=FDM_idx;
+        if (device=="cpu") {
+            FDM_ptrs[0]=new FDMCentralO2Iso2D;
+            FDM_ptrs[1]=new FDMCentralO4Iso2D;
+            (*f_ptr_i).FDM_ptrs=FDM_ptrs;            
+        } else if (device=="gpu") {
+            cudaMalloc(&(*f_ptr_i).FDM_ptrs, 2*sizeof(FiniteDifference*));
+            setFDMPtrs<<<1,1>>>((*f_ptr_i).FDM_ptrs);
+        };
+    };
+    
 
     // Initiate fields and LHS&RHS
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {

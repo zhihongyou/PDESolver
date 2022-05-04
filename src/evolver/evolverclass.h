@@ -24,6 +24,11 @@ public:
     // "explicit" (default) or "semiImplicit".
     std::string scheme="EulerForward";
 
+    // Finite difference scheme
+    std::string FDScheme="CentralDifferenceO2Iso";
+    FiniteDifference **FDM_ptrs;
+    int FDM_idx;    
+
     System* system_ptr;
 
     // Number of copies of fields. Determined by the scheme.
@@ -39,14 +44,15 @@ public:
     
     // Define Constructors ()
     // Evolver();
-    Evolver(System * system_ptr1, double time_start_t=0, double time_stop_t=1, double time_step_t=0.001, double time_export_t=0.1, std::string scheme_t="EulerForward", string device_t="cpu") {
+    Evolver(System * system_ptr1, double time_start_t=0, double time_stop_t=1, double time_step_t=0.001, double time_export_t=0.1, string device_t="cpu", std::string scheme_t="EulerForward", std::string FDScheme_t="CentralDifferenceO2I") {
         system_ptr=system_ptr1;
         time_start=time_start_t;
         time_stop=time_stop_t;
         time_step=time_step_t;
         time_export=time_export_t;
-        scheme=scheme_t;
         device=device_t;
+        scheme=scheme_t;
+        FDScheme=FDScheme_t;
         if (scheme=="EulerForward") {
             num_field_copy=1;            
         } else if (scheme=="PredictorCorrector") {

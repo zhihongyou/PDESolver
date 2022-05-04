@@ -4,6 +4,9 @@
 #include <vector>
 #include <string>
 #include "../mesh/meshclass.cpp"
+#include "../utility/finiteDifferenceCentralO2Isotropic2D.h"
+#include "../utility/finiteDifferenceCentralO4Isotropic2D.h"
+
 
 using namespace std; 
 
@@ -80,7 +83,7 @@ struct FieldTraits {
 
 // =======================================================================
 class Field {
-
+    
     
     public:
 
@@ -93,6 +96,11 @@ class Field {
     // These will store device pointers to field functions.
     rhsPtrs rhs_ptrs_host;
     rhsPtrs rhs_ptrs_dev;
+
+    // Array of finite difference schemes
+    FiniteDifference ** FDM_ptrs;
+    // Index of finite difference scheme
+    int FDM_idx;
     
     // Use to store temp field to write to file;
     double* f_host[5]={NULL,NULL,NULL,NULL,NULL};
@@ -156,7 +164,8 @@ class Field {
     // Differential operators
     double* getLaplaceCPU(int i_field,string method);
     double* getBiLaplaceCPU(int i_field,string method);
-    double* getLaplaceGPU(int i_field, string method);    
+    double* getLaplaceGPU(int i_field, string method);
+    double* getBiLaplaceGPU(int i_field, string method);    
 
     // -------------------------------------------------------------------
     // Field boundary condition    
@@ -243,6 +252,6 @@ class Field {
     // ===================================================================
 };
 
-__global__ void getLaplaceGPUCore(double* f, int Nx, int Ny, int Nbx, int Nby, double dx, double dy);
+// __global__ void getLaplaceGPUCore(double* f, int Nx, int Ny, int Nbx, int Nby, double dx, double dy);
 
 #endif

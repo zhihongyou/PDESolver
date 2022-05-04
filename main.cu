@@ -23,11 +23,9 @@
 
 using namespace std;
 
-// __global__ void testGPU (rhsPtrs rhs_ptrs_dev, int a) {
-    // rhs_ptrs_dev.num_terms[0]+=a;
-    // rhs_ptrs_dev.
-    // f_dev[0][10]=1000;
-// };
+__global__ void testGPU (FiniteDifference** FDM_ptrs, int *FDM_idx) {
+    FDM_idx[0]=FDM_idx[0]+1;
+};
 
 
 // ======================================================================
@@ -54,12 +52,13 @@ int main() {
 
     mub.setRhsTerms({
         {-1,{{"laplace",&phib}},"explicit"},
-        {-0.05,{{"1",&phib}},"explicit"},
+        {-0.2,{{"1",&phib}},"explicit"},
         {1,{{"1",&phib},{"1",&phib},{"1",&phib}},"explicit"}
     });
     
     phia.setRhsTerms({
-        {1,{{"laplace",&mua}},"explicit"}
+        {1,{{"laplace",&mua}},"explicit"},
+        {-0.1,{{"laplace",&phib}},"explicit"}
     });
 
     phib.setRhsTerms({
@@ -69,17 +68,31 @@ int main() {
     
     // Add fields to the system.
     mySys.field_ptrs.push_back(&mua);
-    // mySys.field_ptrs.push_back(&mub);
+    mySys.field_ptrs.push_back(&mub);
     mySys.field_ptrs.push_back(&phia);
-    // mySys.field_ptrs.push_back(&phib);
+    mySys.field_ptrs.push_back(&phib);
     // Print system information.
     // mySys.printSysInfo();
     
     // Creating an evolver:
     string device="gpu";
-    // Evolver evolver(&mySys,0,10000,0.02,100,"EulerForward",device);
-    Evolver evolver(&mySys,0,10000,0.02,100,"RK4",device);
+    string FDScheme="CentralDifferenceO2I";
+    Evolver evolver(&mySys,0,30000,0.02,100,device,"EulerForward",FDScheme);
+    // Evolver evolver(&mySys,0,10000,0.02,100,device,"RK4",FDScheme);
     evolver.run();
+
+    // -----------------------------------------------------------
+    // evolver.initEvolver();
+    // evolver.evalFieldFuncs(&mua,0);
+    // evolver.updateRHS(&mua,0);
+    // mua.applyBounCondPeriGPU(mua.f[0]);
+    // evolver.evalFieldFuncs(&phia,0);
+    // evolver.updateRHS(&phia,0);
+    // phia.export_conf_any(phia.f[0],"phia","0", device, 1);
+    // phia.export_conf_any(phia.laplace,"phia_laplace","0", device, 1);
+    // phia.export_conf_any(phia.rhs[0],"phia_rhs","0", device, 1);
+    // mua.export_conf_any(mua.f[0],"mua","0", device, 1);
+    // mua.export_conf_any(mua.laplace,"mua_laplace","0", device, 1);        
 
     // -----------------------------------------------------------
     
