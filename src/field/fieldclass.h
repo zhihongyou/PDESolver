@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include "../mesh/meshclass.cpp"
+#include "../utility/fieldFunctionClass.h"
 #include "../utility/finiteDifferenceCentralO2Isotropic2D.h"
 #include "../utility/finiteDifferenceCentralO4Isotropic2D.h"
 
@@ -129,10 +130,15 @@ class Field {
     double* d2z=NULL;
     double* d2x2y=NULL;
     double* d2x2z=NULL;
-    double* d2y2z=NULL;
-    double* one_over_f=NULL;
+    double* d2y2z=NULL;    
     double* laplace=NULL;
-    double* bi_laplace=NULL;    
+    double* bi_laplace=NULL;
+    double* one_over_f=NULL;
+    double* sinf=NULL;
+    double* cosf=NULL;
+    double* tanf=NULL;
+    double* cotf=NULL;
+    
     
     // ===================================================================
     // Methods
@@ -144,7 +150,7 @@ class Field {
     // ------------------------------------------------------------------
     // Get rhs
     void getRHS(int i_f_copy);
-    void allocField (double* f_t, string location);
+    void allocField (double* &f_t, string location);
     // -------------------------------------------------------------------
     // Field initialization
     // Constant field
@@ -158,14 +164,18 @@ class Field {
     void initFieldSin(double sin_amplitude, int sin_period, double sin_phase);
     void setFieldConstCPU(double* f_t, double f_val, int Nx, int Ny, int Nbx, int Nby);
     void setFieldConstGPU(double* f_t, double f_val, int Nx, int Ny, int Nbx, int Nby);
-
     void setRhsTerms(vector<rhsTerm> rhs_terms_t);
     // ===================================================================
-    // Differential operators
+    // Functions of fields
     double* getLaplaceCPU(int i_field,string method);
-    double* getBiLaplaceCPU(int i_field,string method);
     double* getLaplaceGPU(int i_field, string method);
-    double* getBiLaplaceGPU(int i_field, string method);    
+    double* getBiLaplaceCPU(int i_field,string method);    
+    double* getBiLaplaceGPU(int i_field, string method);
+    double* getFieldFunctionCPU(int i_field, string method);    
+    template<class FDM_class>
+    double* getFFuncCPU(double* f_func_ptr, int i_field, FDM_class& FDM_scheme, double (FDM_class::*f_func)(double*,int,int,int,double,double), string method);
+    template<class FDM_class>
+    double* getFFuncGPU(double* f_func_ptr, int i_field, FDM_class& FDM_scheme, double (FDM_class::*f_func)(double*,int,int,int,double,double), string method);
 
     // -------------------------------------------------------------------
     // Field boundary condition    

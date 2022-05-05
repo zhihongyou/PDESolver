@@ -76,23 +76,26 @@ int main() {
     
     // Creating an evolver:
     string device="gpu";
-    string FDScheme="CentralDifferenceO2I";
-    Evolver evolver(&mySys,0,30000,0.02,100,device,"EulerForward",FDScheme);
+    string FDScheme="CentralDifferenceO4Iso2D";
+    Evolver evolver(&mySys,0,10000,0.02,100,device,"EulerForward",FDScheme);
     // Evolver evolver(&mySys,0,10000,0.02,100,device,"RK4",FDScheme);
     evolver.run();
 
     // -----------------------------------------------------------
     // evolver.initEvolver();
-    // evolver.evalFieldFuncs(&mua,0);
+    
+    // // evolver.evalFieldFuncs(&mua,0);
+    // phia.getLaplaceGPU(0,"new");
     // evolver.updateRHS(&mua,0);
+    
     // mua.applyBounCondPeriGPU(mua.f[0]);
     // evolver.evalFieldFuncs(&phia,0);
     // evolver.updateRHS(&phia,0);
-    // phia.export_conf_any(phia.f[0],"phia","0", device, 1);
-    // phia.export_conf_any(phia.laplace,"phia_laplace","0", device, 1);
-    // phia.export_conf_any(phia.rhs[0],"phia_rhs","0", device, 1);
-    // mua.export_conf_any(mua.f[0],"mua","0", device, 1);
-    // mua.export_conf_any(mua.laplace,"mua_laplace","0", device, 1);        
+    // phia.export_conf_any(phia.f[0],"phia","2", device, 1);
+    // phia.export_conf_any(phia.laplace,"phia_laplace","2", device, 1);
+    // phia.export_conf_any(phia.rhs[0],"phia_rhs","2", device, 1);
+    // mua.export_conf_any(mua.f[0],"mua","2", device, 1);
+    // mua.export_conf_any(mua.laplace,"mua_laplace","2", device, 1);
 
     // -----------------------------------------------------------
     

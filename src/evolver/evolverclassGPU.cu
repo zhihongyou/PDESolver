@@ -62,7 +62,7 @@ __global__ void fieldUpdateGPUCore(double* f_new, double* f_old, double* f_rhs, 
 __constant__ FDMCentralO2Iso2D FDMCentralO2Iso2D_dev;
 __constant__ FDMCentralO4Iso2D FDMCentralO4Iso2D_dev;
 
-__global__ void setFDMPtrs(FiniteDifference** FDM_ptrs) {    
+__global__ void setFDMPtrs2D(FiniteDifference** FDM_ptrs) {    
     FDM_ptrs[0]=&FDMCentralO2Iso2D_dev;
     FDM_ptrs[1]=&FDMCentralO4Iso2D_dev;
 };

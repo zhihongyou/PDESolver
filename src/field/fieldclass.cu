@@ -27,6 +27,7 @@ Field::Field (Mesh* mesh_ptr_t, string name_t, int rank_t, int priority_t, strin
     traits_host.init_cond=init_cond_t;
     traits_host.expo_data=expo_data_t;
     // Initiate field on host, which will then be copied to f.
+    allocField(f_host[0], "cpu");
     if (traits_host.init_cond=="Gaussian") {
         initFieldGaus(0,10,1);
     } else if (traits_host.init_cond=="ones") {
@@ -37,10 +38,7 @@ Field::Field (Mesh* mesh_ptr_t, string name_t, int rank_t, int priority_t, strin
 };
 
 // -----------------------------------------------------------------------
-void Field::initFieldConst(double f_value) {
-    if (f_host[0] == NULL) {
-        f_host[0] = new double[gridNumberAll()];
-    };
+void Field::initFieldConst(double f_value) {    
     int Nx=gridNumber().x;
     int Ny=gridNumber().y;
     int Nbx=gridNumberBoun().x;
@@ -56,9 +54,6 @@ void Field::initFieldConst(double f_value) {
 
 // -----------------------------------------------------------------------
 void Field::initFieldGaus(double r_center, double r_decay, double gaus_amplitude) {
-    if (f_host[0] == NULL) {
-        f_host[0] = new double[gridNumberAll()];
-    };
     int Nx=gridNumber().x;
     int Ny=gridNumber().y;
     int Nbx=gridNumberBoun().x;
@@ -78,9 +73,6 @@ void Field::initFieldGaus(double r_center, double r_decay, double gaus_amplitude
 
 // -----------------------------------------------------------------------
 void Field::initFieldSin(double sin_amplitude=1, int sin_period=1, double sin_phase=0) {
-    if (f_host[0] == NULL) {
-        f_host[0] = new double[gridNumberAll()];
-    };
     int Nx=gridNumber().x;
     int Ny=gridNumber().y;
     int Nbx=gridNumberBoun().x;
@@ -116,6 +108,65 @@ void Field::setRhsTerms(vector<rhsTerm> rhs_terms_t) {
 // =======================================================================
 // Differential operators
 // -----------------------------------------------------------------------
+// To call this, use:
+// FDMCentralO4Iso2D FDM_test;
+// phia.getFFuncCPU<FDMCentralO4Iso2D>(phia.laplace, 0, FDM_test, &FDMCentralO4Iso2D::laplace, "new");
+template<class FDM_class>
+double* Field::getFFuncCPU(double* f_func_ptr, int i_field, FDM_class& FDM_scheme, double (FDM_class::*f_func)(double*,int,int,int,double,double), string method="new") {
+    int get_new=1;
+    if (method=="old" && f_func_ptr != NULL) {
+        get_new=0;
+    };
+
+    if (get_new==1) {
+        allocField(f_func_ptr, "cpu");
+        int Nx=gridNumber().x;
+        int Ny=gridNumber().y;
+        int Nbx=gridNumberBoun().x;
+        int Nby=gridNumberBoun().y;
+        int di=1;
+        int dj=Nx+2*Nbx;
+        double dx=gridSize().x;
+        double dy=gridSize().y;
+
+        for (int j=0; j<Ny;j++) {
+            for (int i=0; i<Nx; i++) {            
+                int idx=(j+Nby)*dj+i+Nbx;
+                f_func_ptr[idx]=(FDM_scheme.*f_func)(f[i_field],idx,di,dj,dx,dy);
+            };
+        };
+    };
+    return f_func_ptr;
+};
+
+
+// -----------------------------------------------------------------------
+// This function is NOT working!!!!
+template<class FDM_class>
+double* Field::getFFuncGPU(double* f_func_ptr, int i_field, FDM_class& FDM_scheme, double (FDM_class::*f_func)(double*,int,int,int,double,double), string method="new") {
+    int get_new=1;
+    if (method=="old" && f_func_ptr != NULL) {
+        get_new=0;
+    };
+
+    if (get_new==1) {
+        allocField(f_func_ptr, "gpu");
+        int Nx=gridNumber().x;
+        int Ny=gridNumber().y;
+        int Nbx=gridNumberBoun().x;
+        int Nby=gridNumberBoun().y;
+        double dx=gridSize().x;
+        double dy=gridSize().y;
+        
+        // getFFuncGPUCore<FDM_class><<<Ny,Nx>>>(f_func_ptr,f[i_field],FDM_scheme,&FDM_class::*f_func,Nx,Ny,Nbx,Nby,dx,dy);
+        // getFFuncGPUCore<*FDM_class><<<Ny,Nx>>>(f_func_ptr,f[i_field],FDM_scheme,&f_func,Nx,Ny,Nbx,Nby,dx,dy);
+    };
+
+    return f_func_ptr;
+};
+
+
+// -----------------------------------------------------------------------
 double* Field::getLaplaceCPU(int i_field, string method="new") {
     int get_new=1;
     if (method=="old" && laplace != NULL) {
@@ -123,9 +174,7 @@ double* Field::getLaplaceCPU(int i_field, string method="new") {
     };
 
     if (get_new==1) {
-        if (laplace == NULL) {
-            laplace=new double[gridNumberAll()];
-        };
+        allocField(laplace, "cpu");
         int Nx=gridNumber().x;
         int Ny=gridNumber().y;
         int Nbx=gridNumberBoun().x;
@@ -153,9 +202,7 @@ double* Field::getLaplaceGPU(int i_field, string method="new") {
     };
     
     if (get_new==1) {
-        if (laplace == NULL) {
-            cudaMalloc(&laplace, gridNumberAll()*sizeof(double));
-        };
+        allocField(laplace, "gpu");
         int Nx=gridNumber().x;
         int Ny=gridNumber().y;
         int Nbx=gridNumberBoun().x;
@@ -176,9 +223,7 @@ double* Field::getBiLaplaceCPU(int i_field, string method="new") {
     };
 
     if (get_new==1) {
-        if (bi_laplace == NULL) {
-            bi_laplace=new double[gridNumberAll()];
-        };
+        allocField(bi_laplace, "cpu");
         int Nx=gridNumber().x;
         int Ny=gridNumber().y;
         int Nbx=gridNumberBoun().x;
@@ -206,9 +251,7 @@ double* Field::getBiLaplaceGPU(int i_field, string method="new") {
     };
     
     if (get_new==1) {
-        if (bi_laplace == NULL) {
-            cudaMalloc(&bi_laplace, gridNumberAll()*sizeof(double));
-        };
+        allocField(bi_laplace, "gpu");
         int Nx=gridNumber().x;
         int Ny=gridNumber().y;
         int Nbx=gridNumberBoun().x;
@@ -287,12 +330,8 @@ void Field::export_conf_any(double* f_t, string f_name, string str_t, string loc
 
     
     if (location_t=="gpu") {
-        if (f_temp_host == NULL) {
-            f_temp_host=new double[gridNumberAll()];
-        };        
+        allocField(f_temp_host, "cpu");
         cudaMemcpy(f_temp_host, f_t, gridNumberAll()*sizeof(double),cudaMemcpyDeviceToHost);
-        // cout <<f_temp_host[250]<<endl;
-        // updateAnyFieldHost(f_temp_host,f_t);
     };        
     
     if (include_boun==0) {
@@ -310,7 +349,6 @@ void Field::export_conf_any(double* f_t, string f_name, string str_t, string loc
     for (int j=idx0[2]; j<Ny+idx0[3]; j++) {
         for (int i=idx0[0]; i<Nx+idx0[1]; i++) {        
             idx=(Nx+2*Nbx)*(j+Nby)+i+Nbx;
-            // conf_file<<fixed <<setprecision(PrecData) <<f_t[idx]<<endl;
             if (location_t=="cpu") {
                 conf_file<<setiosflags(ios::scientific) <<setprecision(PrecData) <<f_t[idx]<<endl;
             } else {
@@ -354,9 +392,8 @@ void Field::export_conf_any(double* f_t, string f_name, string str_t, string loc
 // -------------------------------------------------------------------
 // Copy any field data from CPU to GPU
 void Field::updateAnyFieldDev (double* f_dev_ptr, double * f_host_ptr) {
-    if (f_dev_ptr == NULL) {
-        cudaMalloc(&f_dev_ptr, gridNumberAll()*sizeof(double));
-    };
+
+    allocField(f_dev_ptr, "gpu");
     cudaMemcpy(f_dev_ptr, f_host_ptr, gridNumberAll()*sizeof(double),cudaMemcpyHostToDevice);
 };
 
@@ -369,27 +406,23 @@ void Field::updateAnyFieldHost (double* f_host_ptr, double * f_dev_ptr) {
 // -------------------------------------------------------------------
 // Copy main field data from CPU to GPU
 void Field::updateMainFieldDev () {
-    if (f[0] == NULL) {
-        cudaMalloc(&f[0], gridNumberAll()*sizeof(double));
-    };
+    allocField(f[0], "gpu");
     cudaMemcpy(f[0], f_host[0], gridNumberAll()*sizeof(double),cudaMemcpyHostToDevice);
 };
 
 // -------------------------------------------------------------------
 // Copy main field data from GPU to CPU
 void Field::updateMainFieldHost () {
-    if (f_host[0] == NULL) {
-        f_host[0]=new double[gridNumberAll()];
-    };
+    allocField(f[0], "cpu");
     cudaMemcpy(f_host[0], f[0], gridNumberAll()*sizeof(double),cudaMemcpyDeviceToHost);
 };
 
 // ------------------------------------------------------------------
-void Field::allocField (double* f_t, string location) {
+void Field::allocField (double* &f_t, string location) {
     if (f_t==NULL) {
         if (location=="cpu") {
             f_t=new double[gridNumberAll()];
-        } else {
+        } else if (location=="gpu") {
             cudaMalloc(&f_t, gridNumberAll()*sizeof(double));
         };
     };    

@@ -101,15 +101,7 @@ void Evolver::initRHSs() {
             
                 // Evaluate each operator applied on field
                 for (auto f_func_i : rhs_term_i.f_funcs) {
-                    if (f_func_i.f_operator=="1") {
-                        (*f_ptr_i).rhs_ptrs_host.f_func_ptrs[i_func]=(*f_func_i.field_ptr).f_now;
-                    };
-                    if (f_func_i.f_operator=="laplace") {
-                        (*f_ptr_i).rhs_ptrs_host.f_func_ptrs[i_func]=(*f_func_i.field_ptr).laplace;
-                    };
-                    if (f_func_i.f_operator=="bi_laplace") {
-                        (*f_ptr_i).rhs_ptrs_host.f_func_ptrs[i_func]=(*f_func_i.field_ptr).bi_laplace;
-                    };
+                    (*f_ptr_i).rhs_ptrs_host.f_func_ptrs[i_func]=getFFuncPtr(f_func_i.f_operator,f_func_i.field_ptr);
                 
                     // Add this term to function list of this field. Each function appears only once.
                     int toAdd=1;
@@ -139,16 +131,8 @@ void Evolver::initRHSs() {
                 num_terms_impl+=1;
                 // (*f_ptr_i).rhs_ptrs_host.schemes[i_term]=-1;                
                 // Evaluate each operator applied on field
-                for (auto f_func_i : rhs_term_i.f_funcs) {                             
-                    if (f_func_i.f_operator=="1") {
-                        (*f_ptr_i).rhs_ptrs_host.f_func_ptrs[i_func]=(*f_func_i.field_ptr).f_now;
-                    };
-                    if (f_func_i.f_operator=="laplace") {
-                        (*f_ptr_i).rhs_ptrs_host.f_func_ptrs[i_func]=(*f_func_i.field_ptr).laplace;
-                    };
-                    if (f_func_i.f_operator=="bi_laplace") {
-                        (*f_ptr_i).rhs_ptrs_host.f_func_ptrs[i_func]=(*f_func_i.field_ptr).bi_laplace;
-                    };
+                for (auto f_func_i : rhs_term_i.f_funcs) {
+                    (*f_ptr_i).rhs_ptrs_host.f_func_ptrs[i_func]=getFFuncPtr(f_func_i.f_operator,f_func_i.field_ptr);
                 
                     // Add this term to function list of this field. Each function appears only once.                    
                     int toAdd=1;
@@ -191,6 +175,19 @@ void Evolver::initRHSs() {
 };
 
 // ----------------------------------------------------------------------
+double* Evolver::getFFuncPtr(string f_operator, Field* field_ptr) {
+    double* ptr_temp;
+    if (f_operator=="1") {
+        ptr_temp=(*field_ptr).f_now;
+    } else if (f_operator=="laplace") {
+        ptr_temp=(*field_ptr).laplace;
+    } else if (f_operator=="bi_laplace") {
+        ptr_temp=(*field_ptr).bi_laplace;
+    };
+    return ptr_temp;
+};
+
+// ----------------------------------------------------------------------
 // Allocate memory for fields and field functions.
 // Location of memory depends on device of the evolver.
 void Evolver::initFields () {
@@ -198,20 +195,30 @@ void Evolver::initFields () {
     // Set finite difference method
     // Get instances of finite difference schemes
     FDM_ptrs=new FiniteDifference*[2];
-    if (FDScheme=="CentralDifferenceO2I") {
+    if (FDScheme=="CentralDifferenceO2Iso2D") {
         FDM_idx=0;
-    } else if (FDScheme=="CentralDifferenceO4I") {
+    } else if (FDScheme=="CentralDifferenceO4Iso2D") {
         FDM_idx=1;
+    } else {
+        cout <<"Error!! Finite Difference Scheme not correctly assigned!"<<endl;
     };    
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
         (*f_ptr_i).FDM_idx=FDM_idx;
         if (device=="cpu") {
-            FDM_ptrs[0]=new FDMCentralO2Iso2D;
-            FDM_ptrs[1]=new FDMCentralO4Iso2D;
-            (*f_ptr_i).FDM_ptrs=FDM_ptrs;            
+            switch ((*f_ptr_i).spaceDim()) {
+                case 2:
+                    FDM_ptrs[0]=new FDMCentralO2Iso2D;
+                    FDM_ptrs[1]=new FDMCentralO4Iso2D;
+                    (*f_ptr_i).FDM_ptrs=FDM_ptrs;
+                    break;
+            };
         } else if (device=="gpu") {
             cudaMalloc(&(*f_ptr_i).FDM_ptrs, 2*sizeof(FiniteDifference*));
-            setFDMPtrs<<<1,1>>>((*f_ptr_i).FDM_ptrs);
+            switch ((*f_ptr_i).spaceDim()) {
+                case 2:
+                    setFDMPtrs2D<<<1,1>>>((*f_ptr_i).FDM_ptrs);
+                    break;
+            };            
         };
     };
     
@@ -251,32 +258,13 @@ void Evolver::initFields () {
         for (auto rhs_term_i : (*f_ptr_i).rhsTerms()) {            
             for (auto f_func_i : rhs_term_i.f_funcs) {                
                 if (f_func_i.f_operator=="1") {
-                    if ((*f_func_i.field_ptr).f_now==NULL) {
-                        if (device=="cpu") {
-                            (*f_func_i.field_ptr).f_now=new double[num_grid];
-                        } else {
-                            cudaMalloc(&(*f_func_i.field_ptr).f_now, num_grid*sizeof(double));
-                        };
-                    };
+                    (*f_func_i.field_ptr).allocField((*f_func_i.field_ptr).f_now, device);
                 };
-                if (f_func_i.f_operator=="laplace") {                                        
-                    if ((*f_func_i.field_ptr).laplace==NULL) {
-                        if (device=="cpu") {
-                            (*f_func_i.field_ptr).laplace=new double[num_grid];
-                        } else {
-                            cudaMalloc(&(*f_func_i.field_ptr).laplace, num_grid*sizeof(double));
-                        };
-                    };
+                if (f_func_i.f_operator=="laplace") {
+                    (*f_func_i.field_ptr).allocField((*f_func_i.field_ptr).laplace, device);
                 };
-
                 if (f_func_i.f_operator=="bi_laplace") {
-                    if ((*f_func_i.field_ptr).bi_laplace==NULL) {
-                        if (device=="cpu") {
-                            (*f_func_i.field_ptr).bi_laplace=new double[num_grid];
-                        } else {
-                            cudaMalloc(&(*f_func_i.field_ptr).bi_laplace, num_grid*sizeof(double));
-                        };
-                    };
+                    (*f_func_i.field_ptr).allocField((*f_func_i.field_ptr).bi_laplace, device);
                 };
             };
         };
@@ -368,7 +356,7 @@ void Evolver::evalFieldFuncs(Field* f_ptr_i, int i_field) {
         if (f_func_i.f_operator == "laplace") {
             if (device=="cpu") {
                 (*f_func_i.field_ptr).getLaplaceCPU(i_field,"new");
-            } else if (device=="gpu") {                
+            } else if (device=="gpu") {
                 (*f_func_i.field_ptr).getLaplaceGPU(i_field,"new");
             };
         };
@@ -408,24 +396,9 @@ void Evolver::updateRHS(Field* f_ptr_t, int i_field) {
             lhs_temp=(*f_ptr_t).f[i_field];
         };
     };    
-    
-    if (rhs_temp == NULL) {
-        if (device=="cpu") {
-            rhs_temp=new double[(*f_ptr_t).gridNumberAll()];
-        } else if (device=="gpu") {            
-            cudaMalloc(&rhs_temp,
-            (*f_ptr_t).gridNumberAll()*sizeof(double));
-        };
-    };
 
-    if (lhs_temp == NULL) {
-        if (device=="cpu") {
-            lhs_temp=new double[(*f_ptr_t).gridNumberAll()];
-        } else if (device=="gpu") {
-            cudaMalloc(&lhs_temp,
-            (*f_ptr_t).gridNumberAll()*sizeof(double));
-        };
-    };
+    (*f_ptr_t).allocField(rhs_temp, device);
+    (*f_ptr_t).allocField(lhs_temp, device);    
     
     if (device=="cpu") {
         updateRHSCoreCPU((*f_ptr_t).rhs_ptrs_host, rhs_temp, lhs_temp, Nx, Ny, Nbx, Nby);

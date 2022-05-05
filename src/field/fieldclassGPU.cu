@@ -8,8 +8,21 @@
 #include <math.h>
 #include "fieldclass.h"
 
-using namespace std; 
+using namespace std;
 
+// ----------------------------------------------------------------------
+template<class FDM_class>
+__global__ void getFFuncGPUCore(double* f_func_ptr, double* f_t, FDM_class& FDM_scheme, double (FDM_class::*f_func)(double*,int,int,int,double,double), int Nx, int Ny, int Nbx, int Nby, double dx, double dy) {
+    int i=threadIdx.x;
+    int j=blockIdx.x;    
+    int idx=(blockDim.x+2*Nbx)*(j+Nby)+i+Nbx;
+    int di=1;
+    int dj=Nx+2*Nbx;    
+
+    if (i<Nx && j<Ny) {
+        f_func_ptr[idx]=(FDM_scheme.*f_func)(f_t,idx,di,dj,dx,dy);
+    };
+};
 
 
 // ----------------------------------------------------------------------

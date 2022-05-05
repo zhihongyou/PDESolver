@@ -3,7 +3,7 @@ dire0='/home/you/Dropbox/Apps/github/PDESolver/data/';
 
 t0=0;
 dt=1;
-ts=300;
+ts=100;
 M=64+6;
 N=M;
 dn=1;
@@ -12,7 +12,7 @@ tPaus=0.01;
 
 % figure('Renderer', 'painters', 'Position', [500 300 1600 800]);
 % figure('Renderer', 'painters', 'Position', [500 300 1000 500]);
-% figure('Renderer', 'painters', 'Position', [500 300 800 800]);
+figure('Renderer', 'painters', 'Position', [500 300 800 400]);
 % figure('Renderer', 'painters', 'Position', [500 300 400 200]);
 rhot=[];
 
@@ -26,23 +26,23 @@ for t=t0:dt:ts
     % figure;
     phia=reshape(importdata([dire0 'phia_' num2str(t) '.dat']),[N,M])';
     mua=reshape(importdata([dire0 'mua_' num2str(t) '.dat']),[N,M])';
-    phib=reshape(importdata([dire0 'phia_' num2str(t) '.dat']),[N,M])';
-    mub=reshape(importdata([dire0 'mua_' num2str(t) '.dat']),[N,M])';
+    phib=reshape(importdata([dire0 'phib_' num2str(t) '.dat']),[N,M])';
+    mub=reshape(importdata([dire0 'mub_' num2str(t) '.dat']),[N,M])';
     phia=phia(4:67,4:67);
     mua=mua(4:67,4:67);
     phib=phib(4:67,4:67);
     mub=mub(4:67,4:67);
-    mua1=-(d2xO4(phia,1)+d2yO4(phia,1))-0.2*phia+phia.^3;
+    mua1=(d2xO4(phia,1)+d2yO4(phia,1));
     
     subplot(2,2,1)
     imagesc(phia);
     title(num2str(t));
     subplot(2,2,2)
-    surf(mua);
+    imagesc(mua);
     subplot(2,2,3)
-    surf(mua1);
+    imagesc(phib);
     subplot(2,2,4)
-    surf(mua-mua1);
+    imagesc(mub);
     
 
     % clf;
