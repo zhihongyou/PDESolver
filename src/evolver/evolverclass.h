@@ -74,7 +74,7 @@ public:
     void initFields();
     void getRHS(int i_field);
     double* getFFuncPtr(string f_operator, Field* field_ptr);
-    void evalFieldFuncs(Field* f_ptr_t, int i_field);    
+    void evalFieldFuncs(Field* f_ptr_t, int i_field);   
     void updateRHS(Field* f_ptr_t, int i_field);
     void updateRHSCoreCPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs_temp, int Nx, int Ny, int Nbx, int Nby);
     void fieldsUpdate(int i_f_new, int i_f_old, int i_df, double time_step_t);

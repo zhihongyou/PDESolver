@@ -16,7 +16,7 @@
 // #include "src/mesh/meshclass.cuh"
 // #include "src/field/fieldclass.cu"
 // #include "src/system/systemclass.cpp"
-#include "src/evolver/evolverclass.h"
+// #include "src/evolver/evolverclass.h"
 #include "src/evolver/evolverclass.cu"
 // #include "src/utility/finiteDifference.h"
 // #include "src/utility/finiteDifferenceCentralO2Isotropic.h"
@@ -78,12 +78,30 @@ int main() {
     string device="gpu";
     string FDScheme="CentralDifferenceO4Iso2D";
     Evolver evolver(&mySys,0,10000,0.02,100,device,"EulerForward",FDScheme);
-    // Evolver evolver(&mySys,0,10000,0.02,100,device,"RK4",FDScheme);
     evolver.run();
 
     // -----------------------------------------------------------
     // evolver.initEvolver();
+    // FDMCentralO4Iso2D FDM_test;
+    // cout<<"export 1"<<endl;
+    // phia.export_conf_any(phia.f[0],"phia","1", device, 1);
+    // phia.export_conf_any(phia.laplace,"phia_laplace","1", device, 1);
+    // phia.export_conf_any(phia.one_over_f,"phia_laplace","1", device, 1);
+    // cout<<"Get Laplace."<<endl;
     
+    // for (int i=0; i<100000;i++) {
+        // phia.getLaplaceCPU(0,"new");
+        // phia.getFFuncCPU<FDMCentralO4Iso2D>(phia.laplace, 0, FDM_test, &FDMCentralO4Iso2D::laplace, "new");
+    // };
+    // phia.getFFuncGPU<double>(phia.one_over_f, 0, FieldFunction::oneOverF, "new");
+    // cout<<"Export 2"<<endl;
+    // phia.export_conf_any(phia.f[0],"phia","2", device, 1);
+    // cout<<"Export 1/f"<<endl;
+    // if (phia.one_over_f==NULL) {
+    //     cout<<"1/f is NULL"<<endl;
+    // };
+    // phia.export_conf_any(phia.laplace,"phia_laplace","2", device, 1);
+    // phia.export_conf_any(phia.one_over_f,"phia_laplace","2", device, 1);
     // // evolver.evalFieldFuncs(&mua,0);
     // phia.getLaplaceGPU(0,"new");
     // evolver.updateRHS(&mua,0);

@@ -1,10 +1,11 @@
-#ifndef EVOLVERCLASS_CPP
-#define EVOLVERCLASS_CPP
+#ifndef EVOLVERCLASS_CU
+#define EVOLVERCLASS_CU
 
 #include <iostream> 
 #include <vector>
 #include "evolverclass.h"
 #include "evolverclassGPU.cu"
+#include "evolverclass_integrator.cu"
 
 using namespace std;
 
@@ -258,13 +259,13 @@ void Evolver::initFields () {
         for (auto rhs_term_i : (*f_ptr_i).rhsTerms()) {            
             for (auto f_func_i : rhs_term_i.f_funcs) {                
                 if (f_func_i.f_operator=="1") {
-                    (*f_func_i.field_ptr).allocField((*f_func_i.field_ptr).f_now, device);
+                    (*f_func_i.field_ptr).allocField<double>((*f_func_i.field_ptr).f_now, device);
                 };
                 if (f_func_i.f_operator=="laplace") {
-                    (*f_func_i.field_ptr).allocField((*f_func_i.field_ptr).laplace, device);
+                    (*f_func_i.field_ptr).allocField<double>((*f_func_i.field_ptr).laplace, device);
                 };
                 if (f_func_i.f_operator=="bi_laplace") {
-                    (*f_func_i.field_ptr).allocField((*f_func_i.field_ptr).bi_laplace, device);
+                    (*f_func_i.field_ptr).allocField<double>((*f_func_i.field_ptr).bi_laplace, device);
                 };
             };
         };
@@ -272,30 +273,6 @@ void Evolver::initFields () {
     
 };
 
-// ----------------------------------------------------------------------
-// Euler forward scheme to evolve over time.
-void Evolver::EulerForward() {        
-
-    getRHS(0);
-    // Update fields with zero priority.
-    fieldsUpdate(0, 0, 0, time_step);
-};
-
-// ----------------------------------------------------------------------
-// Euler forward scheme to evolve over time.
-void Evolver::RK4() {    
-    getRHS(0);
-    fieldsUpdate(1, 0, 0, 0.5*time_step);
-    getRHS(1);
-    fieldsUpdate(2, 0, 1, 0.5*time_step);
-    getRHS(2);
-    fieldsUpdate(3, 0, 2, time_step);
-    getRHS(3);
-    fieldsUpdate(0, 0, 0, 1.0/6.0*time_step);
-    fieldsUpdate(0, 0, 1, 1.0/3.0*time_step);
-    fieldsUpdate(0, 0, 2, 1.0/3.0*time_step);
-    fieldsUpdate(0, 0, 3, 1.0/6.0*time_step);
-};
 
 // ----------------------------------------------------------------------
 void Evolver::getRHS(int i_field) {
@@ -307,7 +284,7 @@ void Evolver::getRHS(int i_field) {
         };
     };
 
-    // Update fields with priority>0
+    // Update RHS of fields with priority>0
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
         if ((*f_ptr_i).priority()>0) {
             updateRHS(f_ptr_i,i_field);
@@ -320,7 +297,7 @@ void Evolver::getRHS(int i_field) {
         };
     };
 
-    // Update fields with priority=0
+    // Update RHS of fields with priority=0
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
         if ((*f_ptr_i).priority()==0) {
             evalFieldFuncs(f_ptr_i,i_field);            
@@ -337,26 +314,57 @@ void Evolver::evalFieldFuncs(Field* f_ptr_i, int i_field) {
     for (auto f_func_i : (*f_ptr_i).f_funcs_rhs ) {        
         
         if (f_func_i.f_operator == "1") {
-            int Nx=(*f_func_i.field_ptr).gridNumber().x;
-            int Ny=(*f_func_i.field_ptr).gridNumber().y;
-            int Nbx=(*f_func_i.field_ptr).gridNumberBoun().x;
-            int Nby=(*f_func_i.field_ptr).gridNumberBoun().y;
             if (device=="cpu") {
-                for (int j=0; j<Ny;j++) {
-                    for (int i=0; i<Nx; i++) {
-                        int idx=(j+Nby)*(Nx+2*Nbx)+i+Nbx;
-                        (*f_func_i.field_ptr).f_now[idx]=(*f_func_i.field_ptr).f[i_field][idx];
-                    };
-                };
+                (*f_func_i.field_ptr).getFNowCPU(i_field,"new");
             } else if (device=="gpu") {
-                getFNowGPU<<<Ny,Nx>>>((*f_func_i.field_ptr).f_now,(*f_func_i.field_ptr).f[i_field],Nx,Ny,Nbx,Nby);
+                (*f_func_i.field_ptr).getFNowGPU(i_field,"new");
+            };
+        };
+
+        if (f_func_i.f_operator == "d1x") {
+            if (device=="cpu") {
+                (*f_func_i.field_ptr).getD1xCPU(i_field,"new");
+            } else if (device=="gpu") {                
+                (*f_func_i.field_ptr).getD1xGPU(i_field,"new");
+            };
+        };
+
+        if (f_func_i.f_operator == "d1y") {
+            if (device=="cpu") {
+                (*f_func_i.field_ptr).getD1yCPU(i_field,"new");
+            } else if (device=="gpu") {                
+                (*f_func_i.field_ptr).getD1yGPU(i_field,"new");
+            };
+        };
+
+        if (f_func_i.f_operator == "d2x") {
+            if (device=="cpu") {
+                (*f_func_i.field_ptr).getD2xCPU(i_field,"new");
+            } else if (device=="gpu") {                
+                (*f_func_i.field_ptr).getD2xGPU(i_field,"new");
+            };
+        };
+
+        if (f_func_i.f_operator == "d2y") {
+            if (device=="cpu") {
+                (*f_func_i.field_ptr).getD2yCPU(i_field,"new");
+            } else if (device=="gpu") {                
+                (*f_func_i.field_ptr).getD2yGPU(i_field,"new");
+            };
+        };
+
+        if (f_func_i.f_operator == "d1x1y") {
+            if (device=="cpu") {
+                (*f_func_i.field_ptr).getD1x1yCPU(i_field,"new");
+            } else if (device=="gpu") {                
+                (*f_func_i.field_ptr).getD1x1yGPU(i_field,"new");
             };
         };
         
         if (f_func_i.f_operator == "laplace") {
             if (device=="cpu") {
                 (*f_func_i.field_ptr).getLaplaceCPU(i_field,"new");
-            } else if (device=="gpu") {
+            } else if (device=="gpu") {                
                 (*f_func_i.field_ptr).getLaplaceGPU(i_field,"new");
             };
         };
@@ -397,8 +405,8 @@ void Evolver::updateRHS(Field* f_ptr_t, int i_field) {
         };
     };    
 
-    (*f_ptr_t).allocField(rhs_temp, device);
-    (*f_ptr_t).allocField(lhs_temp, device);    
+    (*f_ptr_t).allocField<double>(rhs_temp, device);
+    (*f_ptr_t).allocField<double>(lhs_temp, device);    
     
     if (device=="cpu") {
         updateRHSCoreCPU((*f_ptr_t).rhs_ptrs_host, rhs_temp, lhs_temp, Nx, Ny, Nbx, Nby);
@@ -509,7 +517,7 @@ void Evolver::showProgress() {
 
     std::cout.flush();
 }
-
+// --------------------------------------------------------------------
 
 // ======================================================================
 

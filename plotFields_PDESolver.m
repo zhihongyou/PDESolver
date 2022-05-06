@@ -25,9 +25,10 @@ for t=t0:dt:ts
     clf;
     % figure;
     phia=reshape(importdata([dire0 'phia_' num2str(t) '.dat']),[N,M])';
-    mua=reshape(importdata([dire0 'mua_' num2str(t) '.dat']),[N,M])';
-    phib=reshape(importdata([dire0 'phib_' num2str(t) '.dat']),[N,M])';
-    mub=reshape(importdata([dire0 'mub_' num2str(t) '.dat']),[N,M])';
+    % mua=reshape(importdata([dire0 'mua_' num2str(t) '.dat']),[N,M])';
+    mua=reshape(importdata([dire0 'phib_' num2str(t) '.dat']),[N,M])';
+    phib=reshape(importdata([dire0 'phia_' num2str(t) '.dat']),[N,M])';
+    mub=reshape(importdata([dire0 'phia_' num2str(t) '.dat']),[N,M])';
     phia=phia(4:67,4:67);
     mua=mua(4:67,4:67);
     phib=phib(4:67,4:67);
@@ -39,10 +40,10 @@ for t=t0:dt:ts
     title(num2str(t));
     subplot(2,2,2)
     imagesc(mua);
-    subplot(2,2,3)
-    imagesc(phib);
-    subplot(2,2,4)
-    imagesc(mub);
+    % subplot(2,2,3)
+    % surf(sin(phia));
+    % subplot(2,2,4)
+    % surf(mua-sin(phia));
     
 
     % clf;

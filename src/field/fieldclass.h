@@ -150,7 +150,8 @@ class Field {
     // ------------------------------------------------------------------
     // Get rhs
     void getRHS(int i_f_copy);
-    void allocField (double* &f_t, string location);
+    template <typename T>
+    void allocField(T* &f_t, string location);
     // -------------------------------------------------------------------
     // Field initialization
     // Constant field
@@ -167,15 +168,31 @@ class Field {
     void setRhsTerms(vector<rhsTerm> rhs_terms_t);
     // ===================================================================
     // Functions of fields
+    double* getFNowCPU(int i_field, string method);
+    double* getFNowGPU(int i_field, string method);
+    double* getD1xCPU(int i_field,string method);
+    double* getD1xGPU(int i_field, string method);
+    double* getD1yCPU(int i_field,string method);
+    double* getD1yGPU(int i_field, string method);
+    double* getD2xCPU(int i_field,string method);
+    double* getD2xGPU(int i_field, string method);
+    double* getD2yCPU(int i_field,string method);
+    double* getD2yGPU(int i_field, string method);
+    double* getD1x1yCPU(int i_field,string method);
+    double* getD1x1yGPU(int i_field, string method);
     double* getLaplaceCPU(int i_field,string method);
     double* getLaplaceGPU(int i_field, string method);
     double* getBiLaplaceCPU(int i_field,string method);    
     double* getBiLaplaceGPU(int i_field, string method);
-    double* getFieldFunctionCPU(int i_field, string method);    
+    double* getFieldFunctionCPU(int i_field, string method);
+    template <typename T>
+    T* getFFuncCPU(T* &f_func_ptr, int i_field, T f_func(double*,int), string method);
+    template <typename T>
+    T* getFFuncGPU(T* &f_func_ptr, int i_field, T f_func(double*,int), string method);
     template<class FDM_class>
-    double* getFFuncCPU(double* f_func_ptr, int i_field, FDM_class& FDM_scheme, double (FDM_class::*f_func)(double*,int,int,int,double,double), string method);
+    double* getFFuncCPU1(double* f_func_ptr, int i_field, FDM_class& FDM_scheme, double (FDM_class::*f_func)(double*,int,int,int,double,double), string method);
     template<class FDM_class>
-    double* getFFuncGPU(double* f_func_ptr, int i_field, FDM_class& FDM_scheme, double (FDM_class::*f_func)(double*,int,int,int,double,double), string method);
+    double* getFFuncGPU1(double* f_func_ptr, int i_field, FDM_class& FDM_scheme, double (FDM_class::*f_func)(double*,int,int,int,double,double), string method);
 
     // -------------------------------------------------------------------
     // Field boundary condition    

@@ -1,5 +1,5 @@
-#ifndef EVOLVERCLASS_CU
-#define EVOLVERCLASS_CU
+#ifndef EVOLVERCLASSGPU_CU
+#define EVOLVERCLASSGPU_CU
 
 #ifdef __CUDACC__
 #define CUDA_CALLABLE_MEMBER __host__ __device__
@@ -9,7 +9,6 @@
 
 #include <iostream> 
 #include <vector>
-#include "evolverclass.h"
 
 using namespace std;
 
@@ -57,6 +56,7 @@ __global__ void fieldUpdateGPUCore(double* f_new, double* f_old, double* f_rhs, 
         f_new[idx]=(f_old[idx]+f_rhs[idx]*time_step_t)/(1+f_lhs[idx]*time_step_t);
     };
 };
+
 
 // ----------------------------------------------------------------------
 __constant__ FDMCentralO2Iso2D FDMCentralO2Iso2D_dev;
