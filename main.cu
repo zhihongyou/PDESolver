@@ -48,12 +48,12 @@ int main() {
     
     phia.setRhsTerms({
         {{{"laplace",&mua}}},
-        {-0.2, {{"laplace",&phib}}}
+        {-0.1, {{"laplace",&phib}}}
     });
 
     phib.setRhsTerms({
         {{{"laplace",&mub}}},
-        {0.2, {{"laplace",&phia}}}
+        {0.1, {{"laplace",&phia}}}
     });
     
     // Add fields to the system.
@@ -67,7 +67,7 @@ int main() {
     // Creating an evolver:
     string device="gpu";
     string FDScheme="CentralDifferenceO2Iso2D";
-    Evolver evolver(&mySys,0,10000,0.02,100,device,"EulerForward",FDScheme);
+    Evolver evolver(&mySys,0,20000,0.02,100,device,"EulerForward",FDScheme);
 
     // Running simulations
     evolver.run();    
