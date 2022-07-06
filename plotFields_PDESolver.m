@@ -26,24 +26,36 @@ for t=t0:dt:ts
     % figure;
     phia=reshape(importdata([dire0 'phia_' num2str(t) '.dat']),[N,M])';
     % mua=reshape(importdata([dire0 'mua_' num2str(t) '.dat']),[N,M])';
-    mua=reshape(importdata([dire0 'phib_' num2str(t) '.dat']),[N,M])';
-    phib=reshape(importdata([dire0 'phia_' num2str(t) '.dat']),[N,M])';
-    mub=reshape(importdata([dire0 'phia_' num2str(t) '.dat']),[N,M])';
+    laplacea=reshape(importdata([dire0 'phia_' num2str(t) '.dat']),[N,M])';
+    mua=reshape(importdata([dire0 'phia_' num2str(t) '.dat']),[N,M])';
+    phib=reshape(importdata([dire0 'phib_' num2str(t) '.dat']),[N,M])';
+    mub=reshape(importdata([dire0 'phib_' num2str(t) '.dat']),[N,M])';
+    laplaceb=reshape(importdata([dire0 'phib_' num2str(t) '.dat']),[N,M])';
     phia=phia(4:67,4:67);
     mua=mua(4:67,4:67);
     phib=phib(4:67,4:67);
     mub=mub(4:67,4:67);
-    mua1=(d2xO4(phia,1)+d2yO4(phia,1));
+    laplacea=laplacea(4:67,4:67);
+    laplaceb=laplaceb(4:67,4:67);
+    laplacea1=d2xO4(phia,1)+d2yO4(phia,1);
+    laplaceb1=d2xO4(phib,1)+d2yO4(phib,1);
+    mua1=laplacea1-0.5*laplaceb1;
+    mub1=laplaceb1+0.5*laplacea1;
+    % mua1=sin(phia);
     
-    subplot(2,2,1)
+    subplot(2,3,1)
     imagesc(phia);
     title(num2str(t));
-    subplot(2,2,2)
-    imagesc(mua);
-    % subplot(2,2,3)
-    % surf(sin(phia));
-    % subplot(2,2,4)
-    % surf(mua-sin(phia));
+    subplot(2,3,4)
+    imagesc(phib);
+    % subplot(2,3,2)
+    % surf(mua1);
+    % subplot(2,3,5)
+    % surf(laplaceb-laplaceb1);
+    % subplot(2,3,3)
+    % surf(mua-mua1);
+    % subplot(2,3,6)
+    % surf(mub-mub1);
     
 
     % clf;

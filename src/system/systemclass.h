@@ -3,7 +3,7 @@
 #include <iostream> 
 #include <vector>
 #include <string>
-#include "../field/fieldclass.h"
+// #include "../field/fieldclass.h"
 #include "../field/fieldclass.cu"
 
 

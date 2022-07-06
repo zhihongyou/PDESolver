@@ -3,69 +3,12 @@
 #include <iostream> 
 #include <vector>
 #include <string>
+#include <map>
 #include "../mesh/meshclass.cpp"
-#include "../utility/fieldFunctionClass.h"
-#include "../utility/finiteDifferenceCentralO2Isotropic2D.h"
-#include "../utility/finiteDifferenceCentralO4Isotropic2D.h"
+#include "fieldFunction.cu"
 
 
 using namespace std; 
-
-class Field;
-// -----------------------------------------------------------------------
-struct fieldFunction {
-    // ******************************************************************
-    // Operation struct for a single function call to a field
-    // f_perator is a string used to determine function call
-    // field_ptr is the field on which the f_operator act.
-    // ******************************************************************
-    
-    string f_operator;
-    Field* field_ptr;
-    
-    fieldFunction (string f_operator1, Field* field_ptr1) {
-        f_operator=f_operator1;
-        field_ptr=field_ptr1;
-    };
-};
-
-// -----------------------------------------------------------------------
-struct rhsTerm {
-    // ******************************************************************
-    // Operation struct for collecting a single RHS term of a field.
-    // f_funcs provides information on all functions of fields, which are
-    //   to be multiplied to form the RHS term.
-    // prefactor is the prefactor of this term.
-    // scheme determines whether this term is calculated explicitly or
-    //   implicitly
-    // ******************************************************************
-    
-    vector<fieldFunction> f_funcs;
-    double prefactor;
-    string scheme;
-    
-    rhsTerm(double prefactor1, vector<fieldFunction> f_funcs1, string scheme1) {
-        prefactor=prefactor1;
-        f_funcs=f_funcs1;
-        scheme=scheme1;
-    };
-};
-
-// ----------------------------------------------------------------------
-struct rhsPtrs {
-    // ******************************************************************
-    // Struct that determines the RHS of a field
-    // num_terms is the number of terms on the RHS
-    // prefactors are collections of prefactors of each term.
-    // num_func_1term is the number of fields in each term
-    // f_func_ptrs collect all pointers on the RHS.
-    // ******************************************************************
-    int* num_terms;
-    double* prefactors;
-    int* num_funcs_1term;
-    double** f_func_ptrs;
-    int* schemes;
-};
 
 
 // ======================================================================
@@ -79,8 +22,9 @@ struct FieldTraits {
     string init_cond = "none";
     string expo_data = "on";
     string equation = "";
-    Mesh* mesh_ptr=NULL;        
+    Mesh* mesh_ptr=NULL;
 };
+
 
 // =======================================================================
 class Field {
@@ -89,19 +33,10 @@ class Field {
     public:
 
     FieldTraits traits_host;
-    FieldTraits traits_dev_ptr;
-    
-    vector<rhsTerm> rhs_terms;
-    // These will store main pointers to field functions.
-    vector<fieldFunction> f_funcs_rhs;
-    // These will store device pointers to field functions.
-    rhsPtrs rhs_ptrs_host;
-    rhsPtrs rhs_ptrs_dev;
+    FieldTraits traits_dev_ptr;        
 
     // Array of finite difference schemes
-    FiniteDifference ** FDM_ptrs;
-    // Index of finite difference scheme
-    int FDM_idx;
+    string FDMScheme;
     
     // Use to store temp field to write to file;
     double* f_host[5]={NULL,NULL,NULL,NULL,NULL};
@@ -115,9 +50,29 @@ class Field {
     //   pointer point to device data.
     double* f[5]={NULL,NULL,NULL,NULL,NULL};
     double* rhs[5]={NULL,NULL,NULL,NULL,NULL};
-    double* lhs[5]={NULL,NULL,NULL,NULL,NULL};    
+    double* lhs[5]={NULL,NULL,NULL,NULL,NULL};
+    double** f_funcs_host=new double*[200];
+    double** f_funcs_dev;
     
-    // Operators
+    // Functions of fields
+    vector<rhsTerm> rhs_terms;
+    // These will store main pointers to field functions.
+    // f_func_rhs is replaced by f_func_rhs_host
+    // vector<FFuncDef> f_funcs_rhs;
+    // These will store device pointers to field functions.
+    rhsPtrs rhs_ptrs_host;
+    rhsPtrs rhs_ptrs_dev;    
+    // Matrices that store field data
+    
+    FFuncType* f_funcs=new FFuncType[200];
+    // int num_f_funcs_rhs;
+    // Number of functions to be used
+    int num_f_funcs=0;
+    FFuncItem* f_funcs_rhs=new FFuncItem[200];
+    // FFuncItem* f_funcs_rhs_dev=new FFuncItem[200];
+    // List that link function name to its index in f_funcs.
+    map<pair<string,string>, FFuncItem> f_func_map;
+    
     double* f_now=NULL;
     double* d1x=NULL;
     double* d1y=NULL;
@@ -152,6 +107,7 @@ class Field {
     void getRHS(int i_f_copy);
     template <typename T>
     void allocField(T* &f_t, string location);
+    double* getFFuncPtr(string f_operator);
     // -------------------------------------------------------------------
     // Field initialization
     // Constant field
@@ -166,6 +122,7 @@ class Field {
     void setFieldConstCPU(double* f_t, double f_val, int Nx, int Ny, int Nbx, int Nby);
     void setFieldConstGPU(double* f_t, double f_val, int Nx, int Ny, int Nbx, int Nby);
     void setRhsTerms(vector<rhsTerm> rhs_terms_t);
+    void setFFuncArgs();
     // ===================================================================
     // Functions of fields
     double* getFNowCPU(int i_field, string method);
@@ -185,14 +142,23 @@ class Field {
     double* getBiLaplaceCPU(int i_field,string method);    
     double* getBiLaplaceGPU(int i_field, string method);
     double* getFieldFunctionCPU(int i_field, string method);
+
+    double* getFFuncByName(string f_operator, int i_field, FFuncArgs f_func_args);
+    double* getFFuncCPU(double* &f_func_ptr, int i_field, FFuncType f_func, FFuncArgs f_func_args, string method);
+    double* getFFuncGPU(double* &f_func_ptr, int i_field, FFuncType f_func, FFuncArgs f_func_args, string method);
+    void addFunctoRHS(FFuncDef f_func_i, string device, string func_scheme);
+    
     template <typename T>
-    T* getFFuncCPU(T* &f_func_ptr, int i_field, T f_func(double*,int), string method);
+    T* getFFuncCPU1(T* &f_func_ptr, int i_field, T f_func(double*,int), string method);
+    
     template <typename T>
-    T* getFFuncGPU(T* &f_func_ptr, int i_field, T f_func(double*,int), string method);
-    template<class FDM_class>
-    double* getFFuncCPU1(double* f_func_ptr, int i_field, FDM_class& FDM_scheme, double (FDM_class::*f_func)(double*,int,int,int,double,double), string method);
-    template<class FDM_class>
-    double* getFFuncGPU1(double* f_func_ptr, int i_field, FDM_class& FDM_scheme, double (FDM_class::*f_func)(double*,int,int,int,double,double), string method);
+    T* getFFuncGPU1(T* &f_func_ptr, int i_field, T f_func(double*,int), string method);    
+
+    template<class FFuncClass>
+    double* getFFuncCPU2(double* &f_func_ptr, int i_field, FFuncClass& FFuncScheme, double (FFuncClass::*f_func)(double*,int,int,int,double,double), string method);       
+    
+    template<class FFuncClass>
+    double* getFFuncGPU2(double* &f_func_ptr, int i_field, FFuncClass& FFunccheme, double (FFuncClass::*f_func)(double*,int,int,int,double,double), string method);
 
     // -------------------------------------------------------------------
     // Field boundary condition    
@@ -209,6 +175,7 @@ class Field {
     // -------------------------------------------------------------------
     // Export field
     void export_conf(string str_t, string device, int include_boun);
+    void export_f_func(string f_operator, string str_t, string device, int include_boun);
     void export_conf_any(double* f_t, string f_name, string str_t, string location_t, int include_boun);
     void getEqn();
     
@@ -275,10 +242,10 @@ class Field {
     rhsPtrs fieldFuncPtrs () {
         return rhs_ptrs_host;
     };
-    
+        
     // ===================================================================
 };
 
-// __global__ void getLaplaceGPUCore(double* f, int Nx, int Ny, int Nbx, int Nby, double dx, double dy);
+
 
 #endif

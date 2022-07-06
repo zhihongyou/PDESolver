@@ -3,6 +3,8 @@
 * TODOs
   + Implementation of RHS and Def.
   + Start writing code, starting from the System class, then Fields. Use a main function to test the code on the way.
+  + Use std::map to choose finite difference schemes.
+    See: https://stackoverflow.com/questions/17762232/use-string-to-class-lookup-table-in-c-to-instantiate-classes
 * Workflow from user side:
 ** Create system:
 *** Examples

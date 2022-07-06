@@ -12,11 +12,9 @@
 #include "fieldclass.h"
 #include "fieldclassGPU.cu"
 #include "fieldclass_fieldfunctionsGPU.cu"
-#include "fieldclass_fieldfunctions_genericGPU.cu"
 #include "fieldclass_boundaryconditionGPU.cu"
 #include "fieldclass_initialconditionGPU.cu"
 #include "fieldclass_fieldfunctions.cu"
-#include "fieldclass_fieldfunctions_generic.cu"
 #include "fieldclass_boundarycondition.cu"
 #include "fieldclass_initialcondition.cu"
 
@@ -43,6 +41,10 @@ Field::Field (Mesh* mesh_ptr_t, string name_t, int rank_t, int priority_t, strin
     } else if (traits_host.init_cond=="sin") {
         initFieldSin(0.01,4,0);        
     };
+    num_f_funcs=0;
+    for (int i=0; i<200; i++) {
+        f_funcs_host[i]=NULL;
+    };
 };
 
 
@@ -61,6 +63,12 @@ void Field::setFieldConstGPU(double* f_t, double f_val, int Nx, int Ny, int Nbx,
 // ----------------------------------------------------------------------
 void Field::setRhsTerms(vector<rhsTerm> rhs_terms_t) {
     rhs_terms=rhs_terms_t;
+    FFuncArgs f_func_args1={gridNumber().x,gridNumber().y,gridNumberBoun().x,gridNumberBoun().y,gridSize().x,gridSize().y};
+    for (int i=0; i<rhs_terms.size(); i++) {        
+        for (int j=0; j<rhs_terms[i].f_funcs.size(); j++) {
+            rhs_terms[i].f_funcs[j].f_func_args=f_func_args1;
+        };
+    };
 };
 
 
@@ -72,6 +80,24 @@ void Field::export_conf(string str_t, string device, int include_boun=0) {
         export_conf_any(f[0],name(),str_t, "gpu", include_boun);
     };
 }
+
+// ----------------------------------------------------------------------
+void Field::export_f_func(string f_operator, string str_t, string device, int include_boun=0) {
+
+    int f_func_idx;
+    for (int i=0; i<num_f_funcs; i++) {
+        if (f_funcs_rhs[i].f_operator==f_operator) {
+            f_func_idx=f_funcs_rhs[i].f_func_idx;
+        };
+    };
+    
+    if (device=="cpu") {        
+        export_conf_any(f_funcs_host[f_func_idx], name()+"_"+f_operator, str_t, "cpu", include_boun);
+    } else if (device=="gpu") {
+        export_conf_any(f_funcs_host[f_func_idx], name()+"_"+f_operator, str_t, "gpu", include_boun);
+    };
+}
+
 
 // ----------------------------------------------------------------------
 void Field::export_conf_any(double* f_t, string f_name, string str_t, string location_t="cpu" , int include_boun=0) {
@@ -187,6 +213,52 @@ void Field::allocField (T* &f_t, string location) {
         };
     };    
 };
+
+// ----------------------------------------------------------------------
+double* Field::getFFuncPtr(string f_operator) {
+
+    double* f_func_ptr;
+    for (int i=0; i<num_f_funcs; i++) {
+        if (f_funcs_rhs[i].f_operator==f_operator) {
+            f_func_ptr=f_funcs_host[f_funcs_rhs[i].f_func_idx];
+        };
+    };
+
+    return f_func_ptr;
+        
+};
+
+
+// -----------------------------------------------------------------------
+void Field::addFunctoRHS(FFuncDef f_func_i, string device, string func_scheme) {
+    FFuncItem f_func_item;
+    f_func_item.f_operator=f_func_i.f_operator;
+    f_func_item.f_func_idx=num_f_funcs;
+    f_func_item.f_func_args=f_func_i.f_func_args;
+    
+    if (device=="cpu") {
+        allocField<double>(f_funcs_host[num_f_funcs], "cpu");
+        if (f_func_map_all[{f_func_i.f_operator,func_scheme}]==0) {
+            f_func_item.f_func=f_func_map_all[{f_func_i.f_operator,""}];
+        } else {
+            f_func_item.f_func=f_func_map_all[{f_func_i.f_operator,func_scheme}];
+        };
+    } else if (device=="gpu") {
+        allocField<double>(f_funcs_host[num_f_funcs], "gpu");
+        if (f_func_map_all[{f_func_i.f_operator,func_scheme}]==0) {
+            f_func_item.f_func=f_func_map_all_dev[{f_func_i.f_operator,""}];
+        } else {
+            f_func_item.f_func=f_func_map_all_dev[{f_func_i.f_operator,func_scheme}];
+        };
+    };
+    f_funcs_rhs[num_f_funcs]=f_func_item;
+    num_f_funcs+=1;
+};
+
+
+
+// ------------------------------------------------------------------
+
 
 // =================================================================
 
