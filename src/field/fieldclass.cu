@@ -23,7 +23,58 @@ using namespace std;
 
 
 // =======================================================================
-// Constructor
+// Constructors
+Field::Field (Mesh* mesh_ptr_t, string name_t) {
+    traits_host.mesh_ptr=mesh_ptr_t;
+    traits_host.name=name_t;
+    traits_host.rank=1;
+    traits_host.priority=0;
+    traits_host.boun_cond="periodic";
+    traits_host.init_cond="sin";
+    traits_host.expo_data="on";
+    // Initiate field on host, which will then be copied to f.
+    allocField<double>(f_host[0], "cpu");
+    if (traits_host.init_cond=="Gaussian") {
+        initFieldGaus(0,10,1);
+    } else if (traits_host.init_cond=="ones") {
+        initFieldConst(1);
+    } else if (traits_host.init_cond=="sin") {
+        initFieldSin(0.01,4,0);        
+    };
+    num_f_funcs=0;
+    for (int i=0; i<200; i++) {
+        f_funcs_host[i]=NULL;
+    };
+};
+
+
+// =======================================================================
+// Constructors
+Field::Field (Mesh* mesh_ptr_t, string name_t, int priority_t) {
+    traits_host.mesh_ptr=mesh_ptr_t;
+    traits_host.name=name_t;
+    traits_host.rank=1;
+    traits_host.priority=priority_t;
+    traits_host.boun_cond="periodic";
+    traits_host.init_cond="sin";
+    traits_host.expo_data="on";
+    // Initiate field on host, which will then be copied to f.
+    allocField<double>(f_host[0], "cpu");
+    if (traits_host.init_cond=="Gaussian") {
+        initFieldGaus(0,10,1);
+    } else if (traits_host.init_cond=="ones") {
+        initFieldConst(1);
+    } else if (traits_host.init_cond=="sin") {
+        initFieldSin(0.01,4,0);        
+    };
+    num_f_funcs=0;
+    for (int i=0; i<200; i++) {
+        f_funcs_host[i]=NULL;
+    };
+};
+
+
+// -----------------------------------------------------------------------
 Field::Field (Mesh* mesh_ptr_t, string name_t, int rank_t, int priority_t, string boun_cond_t, string init_cond_t, string expo_data_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
     traits_host.name=name_t;

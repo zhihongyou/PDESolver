@@ -28,12 +28,22 @@ int main() {
     mySys.mesh_ptr=&mesh;
     
     // Creating fields.
-    Field mua(&mesh, "mua", 0, 1, "periodic", "Gaussian", "on");
-    Field phia(&mesh, "phia", 0, 0, "periodic", "sin", "on");
-    Field mub(&mesh, "mub", 0, 1, "periodic", "Gaussian", "on");
-    Field phib(&mesh, "phib", 0, 0, "periodic", "sin", "on");
+    Field phia(&mesh, "phia");
+    Field phib(&mesh, "phib");
+    Field mua(&mesh, "mua", 1);
+    Field mub(&mesh, "mub", 0, 1, "periodic", "sin", "on");
 
     // Set equations
+    phia.setRhsTerms({
+        {{{"laplace",&mua}}},
+        {-0.1, {{"laplace",&phib}}}
+    });
+
+    phib.setRhsTerms({
+        {{{"laplace",&mub}}},
+        {0.1, {{"laplace",&phia}}}
+    });
+    
     mua.setRhsTerms({
         {-1, {{"laplace",&phia}}},
         {-0.2, {{&phia}}},
@@ -44,17 +54,7 @@ int main() {
         {-1,{{"laplace",&phib}}},
         {-0.2,{{"1",&phib}}},
         {{ {&phib}, {&phib}, {&phib} }}
-    });
-    
-    phia.setRhsTerms({
-        {{{"laplace",&mua}}},
-        {-0.1, {{"laplace",&phib}}}
-    });
-
-    phib.setRhsTerms({
-        {{{"laplace",&mub}}},
-        {0.1, {{"laplace",&phia}}}
-    });
+    });        
     
     // Add fields to the system.
     mySys.field_ptrs.push_back(&mua);

@@ -100,6 +100,8 @@ class Field {
     
     // ===================================================================
     // Constructor
+    Field (Mesh* mesh_ptr_t, string name_t);
+    Field (Mesh* mesh_ptr_t, string name_t, int priority_t);
     Field (Mesh* mesh_ptr_t, string name_t, int rank_t, int priority_t, string boun_cond_t, string init_cond_t, string expo_data_t);    
     
     // ------------------------------------------------------------------
