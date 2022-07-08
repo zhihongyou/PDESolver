@@ -14,6 +14,7 @@
     
 // ------------------------------------------------------------------
 CUDA_CALLABLE_MEMBER double d1xCO2I2D(double * f, int idx, FFuncArgs f_func_args) {
+    /* di-y, dj-x */
     double dx=f_func_args.dx;
     int di=f_func_args.di;
     int dj=f_func_args.dj;

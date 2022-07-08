@@ -14,7 +14,7 @@ using namespace std;
 __global__ void fieldCopy(double* f_now, double* f_t, int Nx, int Ny, int Nbx, int Nby) {
     int i=threadIdx.x;
     int j=blockIdx.x;    
-    int idx=(blockDim.x+2*Nbx)*(j+Nby)+i+Nbx;    
+    int idx=(blockDim.x+2*Nbx)*(j+Nby)+i+Nbx;
 
     if (i<Nx && j<Ny) {
         f_now[idx]=f_t[idx];

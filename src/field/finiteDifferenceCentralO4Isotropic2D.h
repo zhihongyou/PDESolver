@@ -34,11 +34,11 @@ CUDA_CALLABLE_MEMBER double d1yCO4I2D(double * f, int idx, FFuncArgs f_func_args
     int di=f_func_args.di;
     int dj=f_func_args.dj;
     return 1.0/dy*(
-        13.0/30.0*( f[idx+dj] - f[idx-dj] )
-        +2.0/15.0*( f[idx+di+dj] + f[idx-di+dj] - f[idx+di-dj] - f[idx-di-dj] )
-        -1.0/60.0*( f[idx+2*dj] - f[idx-2*dj] )
-        -1.0/60.0*( f[idx+2*di+dj] + f[idx-2*di+dj] - f[idx+2*di-dj] - f[idx-2*di-dj] )
-        -1.0/30.0*( f[idx+di+2*dj] + f[idx-di+2*dj] - f[idx+di-2*dj] - f[idx-di-2*dj] )
+        13.0/30.0*( f[idx+di] - f[idx-di] )
+        +2.0/15.0*( f[idx+dj+di] + f[idx-dj+di] - f[idx+dj-di] - f[idx-dj-di] )
+        -1.0/60.0*( f[idx+2*di] - f[idx-2*di] )
+        -1.0/60.0*( f[idx+2*dj+di] + f[idx-2*dj+di] - f[idx+2*dj-di] - f[idx-2*dj-di] )
+        -1.0/30.0*( f[idx+dj+2*di] + f[idx-dj+2*di] - f[idx+dj-2*di] - f[idx-dj-2*di] )
     );
 };
 
@@ -95,18 +95,18 @@ CUDA_CALLABLE_MEMBER double d2yCO4I2D(double * f, int idx, FFuncArgs f_func_args
     int di=f_func_args.di;
     int dj=f_func_args.dj;
     return 1.0/(dy*dy)*( 5.0*f[idx]
-    -164.0/45.0*( f[idx+dj] + f[idx-dj] )
-    +103.0/90.0*( f[idx+2*dj] + f[idx-2*dj] )
-    -223.0/45.0*( f[idx+di] + f[idx-di])  
-    +148.0/45.0*( f[idx+di+dj] + f[idx-di+dj] +
-    f[idx+di-dj] + f[idx-di-dj] )
-    -73.0/90.0* ( f[idx+di+2*dj] + f[idx-di+2*dj] +
-    f[idx+di-2*dj] + f[idx-di-2*dj] )
-    +217.0/180.0*(f[idx+2*di] + f[idx-2*di])
-    -4.0/5.0*(  + f[idx+2*di+dj] + f[idx-2*di+dj] +
-    f[idx+2*di-dj] + f[idx-2*di-dj])
-    +71.0/360.0*(+f[idx+2*di+2*dj] + f[idx-2*di+2*dj] +
-    f[idx+2*di-2*dj] + f[idx-2*di-2*dj])
+    -164.0/45.0*( f[idx+di] + f[idx-di] )
+    +103.0/90.0*( f[idx+2*di] + f[idx-2*di] )
+    -223.0/45.0*( f[idx+dj] + f[idx-dj])  
+    +148.0/45.0*( f[idx+dj+di] + f[idx-dj+di] +
+    f[idx+dj-di] + f[idx-dj-di] )
+    -73.0/90.0* ( f[idx+dj+2*di] + f[idx-dj+2*di] +
+    f[idx+dj-2*di] + f[idx-dj-2*di] )
+    +217.0/180.0*(f[idx+2*dj] + f[idx-2*dj])
+    -4.0/5.0*(  + f[idx+2*dj+di] + f[idx-2*dj+di] +
+    f[idx+2*dj-di] + f[idx-2*dj-di])
+    +71.0/360.0*(+f[idx+2*dj+2*di] + f[idx-2*dj+2*di] +
+    f[idx+2*dj-2*di] + f[idx-2*dj-2*di])
     );
 };
 

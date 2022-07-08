@@ -3,8 +3,8 @@
 #include <iostream> 
 #include <vector>
 #include <string>
-// #include "../field/fieldclass.h"
 #include "../field/fieldclass.cu"
+#include "../field/incompressible-flow/incompressibleflowclass.cu"
 
 
 using namespace std; 
@@ -23,6 +23,12 @@ class System {
     Mesh* mesh_ptr=NULL;
     // Pointer to all fields.
     std::vector<Field*> field_ptrs;
+
+    IncompressibleFlow* incomFlow_ptr;
+
+    System () {
+        setFFuncMap ();
+    };
     
 
 //................Methods ................................................
@@ -30,7 +36,7 @@ class System {
     // System ();
     // Print system information.
     void printSysInfo ();
-    
+    void addIncompressibleFlow (IncompressibleFlow* incomFlow_ptr_t);
 };
 
 

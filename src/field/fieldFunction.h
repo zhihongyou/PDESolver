@@ -11,7 +11,6 @@ using namespace std;
 
 class Field;
 // ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
 struct FFuncArgs {
     int di;
     int dj;
@@ -47,8 +46,8 @@ struct FFuncArgs {
         Ny=Ny1;
         Nbx=Nbx1;
         Nby=Nby1;
-        di=1;
-        dj=Nx1+2*Nbx1;
+        di=Nx1+2*Nbx1;
+        dj=1;
         dx=dx1;
         dy=dy1;
     };

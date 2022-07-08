@@ -46,6 +46,7 @@ void Evolver::run() {
             for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
                 if ((*f_ptr_i).expoData() =="on") {
                     (*f_ptr_i).export_conf(str_t,device,1);
+                    // (*f_ptr_i).export_conf_any((*f_ptr_i).rhs[0],"dt"+(*f_ptr_i).name(),str_t, device, 1);
                 };        
             };
             // Show progress of simulation.
@@ -67,7 +68,7 @@ void Evolver::run() {
 void Evolver::initEvolver() {
     // Initialize field function map used to identify functions to call
     //   based on the operator name.
-    setFFuncMap ();
+    setFFuncMap();
     
     // Initialize fields
     initFields();
@@ -84,6 +85,9 @@ void Evolver::initFields () {
 
     // Initiate fields and LHS&RHS
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
+        // Set numerical scheme for each field.
+        (*f_ptr_i).FDMScheme=FDMScheme;
+        
         int num_grid=(*f_ptr_i).gridNumberAll();
         if (device=="cpu") {            
             for (int i_f_copy=0; i_f_copy<num_field_copy; i_f_copy++) {
@@ -162,7 +166,7 @@ void Evolver::initRHSs() {
                     };
                     if (toAdd==1) {
                         // cout <<"Add term: "<<f_func_i.f_operator<<":"<<(*f_func_i.field_ptr).name()<<endl;
-                        (*f_func_i.field_ptr).addFunctoRHS(f_func_i,device,FDScheme);
+                        (*f_func_i.field_ptr).addFunctoRHS(f_func_i,device,FDMScheme);
                     };
                     
                     // Add field function pointer to rhs_ptrs_host.
@@ -197,7 +201,7 @@ void Evolver::initRHSs() {
                     };
                     if (toAdd==1) {                            
                         // (*f_ptr_i).f_funcs_rhs.push_back(f_func_i);
-                        (*f_func_i.field_ptr).addFunctoRHS(f_func_i,device,FDScheme);
+                        (*f_func_i.field_ptr).addFunctoRHS(f_func_i,device,FDMScheme);
                     };
 
                     (*f_ptr_i).rhs_ptrs_host.f_func_ptrs[i_func]=(*f_func_i.field_ptr).getFFuncPtr(f_func_i.f_operator);
@@ -239,12 +243,12 @@ void Evolver::getRHS(int i_field) {
 
     // Evaluate field functions for priority=0
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
-        if ((*f_ptr_i).priority()==0) {
+        if ((*f_ptr_i).priority()<=0) {
             evalFieldFuncs(f_ptr_i,i_field);            
         };
     };    
 
-    // Update RHS of fields with priority>0
+    // Get new field values for those with priority>0
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
         if ((*f_ptr_i).priority()>0) {
             updateRHS(f_ptr_i,i_field);
@@ -253,6 +257,10 @@ void Evolver::getRHS(int i_field) {
                 (*f_ptr_i).applyBounCondPeriCPU((*f_ptr_i).f[i_field]);
             } else if (device=="gpu"){
                 (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_field]);
+            };
+
+            if ((*f_ptr_i).specialty=="IncompressibleFlow.omega") {
+                (*(*system_ptr).incomFlow_ptr).getVelocity(i_field);
             };
         };
     };
@@ -371,6 +379,9 @@ void Evolver::fieldsUpdate(int i_f_new, int i_f_old, int i_df, double time_step_
                 if ((*f_ptr_i).bounCond()=="periodic") {
                     (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_f_new]);
                 };
+            };
+            if ((*f_ptr_i).specialty=="IncompressibleFlow.omega") {
+                (*(*system_ptr).incomFlow_ptr).getVelocity(i_f_new);
             };
         };        
     };

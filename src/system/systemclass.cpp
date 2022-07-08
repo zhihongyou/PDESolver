@@ -54,11 +54,21 @@ void System::printSysInfo () {
             if ( ++iter == field_ptrs.end() ) {
                 cout<<"." <<endl;
             } else {
-                cout <<",";
+                cout <<", ";
             };
         };
     };
     
+};
+
+
+// ------------------------------------------------------------
+void System::addIncompressibleFlow (IncompressibleFlow* incomFlow_ptr_t) {
+    incomFlow_ptr=incomFlow_ptr_t;
+    field_ptrs.push_back(&(*incomFlow_ptr).omega);
+    field_ptrs.push_back(&(*incomFlow_ptr).phi);
+    field_ptrs.push_back(&(*incomFlow_ptr).vx);
+    field_ptrs.push_back(&(*incomFlow_ptr).vy);
 };
 
 // =======================================================================

@@ -34,9 +34,9 @@ class Field {
 
     FieldTraits traits_host;
     FieldTraits traits_dev_ptr;        
-
+    
     // Array of finite difference schemes
-    string FDMScheme;
+    string FDMScheme="CentralDifferenceO2Iso2D";
     
     // Use to store temp field to write to file;
     double* f_host[5]={NULL,NULL,NULL,NULL,NULL};
@@ -72,6 +72,9 @@ class Field {
     // FFuncItem* f_funcs_rhs_dev=new FFuncItem[200];
     // List that link function name to its index in f_funcs.
     map<pair<string,string>, FFuncItem> f_func_map;
+
+    // Specify specialty of fields that can trigger special events.
+    string specialty="";
     
     double* f_now=NULL;
     double* d1x=NULL;
@@ -100,9 +103,11 @@ class Field {
     
     // ===================================================================
     // Constructor
+    Field () {};
     Field (Mesh* mesh_ptr_t, string name_t);
     Field (Mesh* mesh_ptr_t, string name_t, int priority_t);
-    Field (Mesh* mesh_ptr_t, string name_t, int rank_t, int priority_t, string boun_cond_t, string init_cond_t, string expo_data_t);    
+    Field (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t);
+    Field (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t, string boun_cond_t, string expo_data_t);
     
     // ------------------------------------------------------------------
     // Get rhs
@@ -125,25 +130,7 @@ class Field {
     void setFieldConstGPU(double* f_t, double f_val, int Nx, int Ny, int Nbx, int Nby);
     void setRhsTerms(vector<rhsTerm> rhs_terms_t);
     void setFFuncArgs();
-    // ===================================================================
-    // Functions of fields
-    double* getFNowCPU(int i_field, string method);
-    double* getFNowGPU(int i_field, string method);
-    double* getD1xCPU(int i_field,string method);
-    double* getD1xGPU(int i_field, string method);
-    double* getD1yCPU(int i_field,string method);
-    double* getD1yGPU(int i_field, string method);
-    double* getD2xCPU(int i_field,string method);
-    double* getD2xGPU(int i_field, string method);
-    double* getD2yCPU(int i_field,string method);
-    double* getD2yGPU(int i_field, string method);
-    double* getD1x1yCPU(int i_field,string method);
-    double* getD1x1yGPU(int i_field, string method);
-    double* getLaplaceCPU(int i_field,string method);
-    double* getLaplaceGPU(int i_field, string method);
-    double* getBiLaplaceCPU(int i_field,string method);    
-    double* getBiLaplaceGPU(int i_field, string method);
-    double* getFieldFunctionCPU(int i_field, string method);
+    // ===================================================================    
 
     double* getFFuncByName(string f_operator, int i_field, FFuncArgs f_func_args);
     double* getFFuncCPU(double* &f_func_ptr, int i_field, FFuncType f_func, FFuncArgs f_func_args, string method);

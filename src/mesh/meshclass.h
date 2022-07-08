@@ -30,6 +30,11 @@
 #include <string>
 #include "../utility/vector3class.h"
 
+#define real double
+#define Pi 3.1415926535897932384626433832795
+#define Zero 0
+typedef double2 Complex;
+
 using namespace std;
 
 

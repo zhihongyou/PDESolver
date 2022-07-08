@@ -5,10 +5,9 @@
 #include <string>
 #include <time.h>
 #include "../system/systemclass.cpp"
-
+#include "../field/incompressible-flow/incompressibleflowclass.cu"
 
 using namespace std;
-
 
 //................Class .................................................
 
@@ -25,7 +24,7 @@ public:
     std::string scheme="EulerForward";
 
     // Finite difference scheme
-    std::string FDScheme="CentralDifferenceO2Iso";
+    std::string FDMScheme="CentralDifferenceO2Iso";
 
     System* system_ptr;
 
@@ -42,7 +41,7 @@ public:
     
     // Define Constructors ()
     // Evolver();
-    Evolver(System * system_ptr1, double time_start_t=0, double time_stop_t=1, double time_step_t=0.001, double time_export_t=0.1, string device_t="cpu", std::string scheme_t="EulerForward", std::string FDScheme_t="CentralDifferenceO2I") {
+    Evolver(System * system_ptr1, double time_start_t=0, double time_stop_t=1, double time_step_t=0.001, double time_export_t=0.1, string device_t="cpu", std::string scheme_t="EulerForward", std::string FDMScheme_t="CentralDifferenceO2I") {
         system_ptr=system_ptr1;
         time_start=time_start_t;
         time_stop=time_stop_t;
@@ -50,7 +49,7 @@ public:
         time_export=time_export_t;
         device=device_t;
         scheme=scheme_t;
-        FDScheme=FDScheme_t;
+        FDMScheme=FDMScheme_t;
         if (scheme=="EulerForward") {
             num_field_copy=1;            
         } else if (scheme=="PredictorCorrector") {

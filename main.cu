@@ -20,6 +20,7 @@ using namespace std;
 
 // ======================================================================
 int main() {
+    
     // Generating a new system.
     System mySys;
     // Generating a new mesh.
@@ -28,53 +29,80 @@ int main() {
     mySys.mesh_ptr=&mesh;
     
     // Creating fields.
-    Field phia(&mesh, "phia");
-    Field phib(&mesh, "phib");
-    Field mua(&mesh, "mua", 1);
-    Field mub(&mesh, "mub", 0, 1, "periodic", "sin", "on");
+    // Field Hxx(&mesh, "Hxx");
+    // Field Hxy(&mesh, "Hxy");
+    Field S2(&mesh, "S2",1);
+    Field Qxx(&mesh, "Qxx",0,"sin");
+    Field Qxy(&mesh, "Qxy",0,"sin","periodic","on");
+    IncompressibleFlow incomFlow(&mesh, "incomFlow");
 
     // Set equations
-    phia.setRhsTerms({
-        {{{"laplace",&mua}}},
-        {-0.1, {{"laplace",&phib}}}
-    });
-
-    phib.setRhsTerms({
-        {{{"laplace",&mub}}},
-        {0.1, {{"laplace",&phia}}}
+    double gamma=1;
+    double K=1;
+    double A2=-0.25;
+    double A4=1;
+    double lambda=0.7;
+    double eta=10;
+    double Gamma=0.1;
+    double alpha=-30;
+    
+    S2.setRhsTerms({
+        {4,{{&Qxx},{&Qxx}}},
+        {4,{{&Qxy},{&Qxy}}}
     });
     
-    mua.setRhsTerms({
-        {-1, {{"laplace",&phia}}},
-        {-0.2, {{&phia}}},
-        {{ {&phia}, {&phia}, {&phia} }}
+    Qxx.setRhsTerms({
+        {-1, { {&incomFlow.vx}, {"d1x",&Qxx} }}, {-1,{ {&incomFlow.vy}, {"d1y",&Qxx} }},
+        {lambda, { {"d1x",&incomFlow.vx} }},
+        {-1, { {"d1x",&incomFlow.vy},{&Qxy} }}, {{ {"d1y",&incomFlow.vx},{&Qxy} }},
+        {K/gamma,{{"laplace",&Qxx}}}, {-A2/gamma,{{&Qxx}}}, {-0.5*A4/gamma, {{&S2},{&Qxx}}}
     });
 
-    mub.setRhsTerms({
-        {-1,{{"laplace",&phib}}},
-        {-0.2,{{"1",&phib}}},
-        {{ {&phib}, {&phib}, {&phib} }}
-    });        
+    Qxy.setRhsTerms({
+        {-1, { {&incomFlow.vx}, {"d1x",&Qxy} }}, {-1,{ {&incomFlow.vy}, {"d1y",&Qxy} }},
+        {0.5*lambda, { {"d1x",&incomFlow.vy} }}, {0.5*lambda, { {"d1y",&incomFlow.vx} }},
+        {{ {"d1x",&incomFlow.vy},{&Qxx} }}, {-1, { {"d1y",&incomFlow.vx},{&Qxx} }},
+        {K/gamma,{{"laplace",&Qxy}}}, {-A2/gamma,{{&Qxy}}}, {-0.5*A4/gamma, {{&S2},{&Qxy}}}
+    });
+    
+    incomFlow.omega.setRhsTerms({
+        {-0, { {&incomFlow.vx}, {"d1x",&incomFlow.omega} }},
+        {-0, { {&incomFlow.vy}, {"d1y",&incomFlow.omega} }},
+        {eta, {{"laplace",&incomFlow.omega}}}, {-Gamma, {{&incomFlow.omega}}},
+        {alpha, {{"d2x",&Qxy}}}, {-alpha, {{"d2y",&Qxy}}}, {-2*alpha, {{"d1x1y",&Qxx}}}
+    });
     
     // Add fields to the system.
-    mySys.field_ptrs.push_back(&mua);
-    mySys.field_ptrs.push_back(&mub);
-    mySys.field_ptrs.push_back(&phia);
-    mySys.field_ptrs.push_back(&phib);
+    mySys.field_ptrs.push_back(&S2);
+    mySys.field_ptrs.push_back(&Qxx);
+    mySys.field_ptrs.push_back(&Qxy);
+    mySys.addIncompressibleFlow(&incomFlow);
+    
     // Print system information.
-    // mySys.printSysInfo();
+    mySys.printSysInfo();
     
     // Creating an evolver:
     string device="gpu";
-    string FDScheme="CentralDifferenceO2Iso2D";
-    Evolver evolver(&mySys,0,20000,0.02,100,device,"EulerForward",FDScheme);
+    string FDMScheme="CentralDifferenceO4Iso2D";
+    Evolver evolver(&mySys,0,100,0.001,0.5,device,"EulerForward",FDMScheme);
 
     // Running simulations
-    evolver.run();    
+    evolver.run();
+    // evolver.initEvolver();
+    // evolver.getRHS(0);
 
     // -----------------------------------------------------------
     // Testing
-
+    // Qxx.export_conf("0",device,1);
+    // Qxy.export_conf("0",device,1);
+    // incomFlow.omega.export_conf("0",device,1);
+    // incomFlow.vx.export_conf("0",device,1);
+    // incomFlow.vy.export_conf("0",device,1);
+    // S2.export_conf("0",device,1);
+    // Qxx.export_conf_any(Qxx.rhs[0],"dtQxx","0", "gpu", 1);
+    // Qxy.export_conf_any(Qxy.rhs[0],"dtQxy","0", "gpu", 1);
+    // incomFlow.omega.export_conf_any(incomFlow.omega.rhs[0],"dtomega","0", "gpu", 1);
+    
     // -----------------------------------------------------------
     
     return 0;
