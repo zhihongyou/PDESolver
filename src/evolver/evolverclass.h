@@ -6,6 +6,7 @@
 #include <time.h>
 #include "../system/systemclass.cpp"
 #include "../field/incompressible-flow/incompressibleflowclass.cu"
+#include "../field/constant-field/constantfieldclass.cu"
 
 using namespace std;
 

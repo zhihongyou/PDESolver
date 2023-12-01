@@ -71,6 +71,14 @@ void System::addIncompressibleFlow (IncompressibleFlow* incomFlow_ptr_t) {
     field_ptrs.push_back(&(*incomFlow_ptr).vy);
 };
 
+// ------------------------------------------------------------
+void System::addConstantField (ConstantField* constF_ptr_t) {
+    constF_ptr=constF_ptr_t;
+    field_ptrs.push_back(&(*constF_ptr).one);
+    field_ptrs.push_back(&(*constF_ptr).zero);
+    field_ptrs.push_back(&(*constF_ptr).pi);
+};
+
 // =======================================================================
 
 #endif

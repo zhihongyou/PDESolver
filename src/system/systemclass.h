@@ -5,7 +5,7 @@
 #include <string>
 #include "../field/fieldclass.cu"
 #include "../field/incompressible-flow/incompressibleflowclass.cu"
-
+#include "../field/constant-field/constantfieldclass.cu"
 
 using namespace std; 
 
@@ -18,14 +18,15 @@ class System {
     // one can call outside of the class.
     public:
     // Name of system.
-    std::string name="system";    
+    std::string name="system";
     // Pointer to mesh.
     Mesh* mesh_ptr=NULL;
     // Pointer to all fields.
     std::vector<Field*> field_ptrs;
-
+    
     IncompressibleFlow* incomFlow_ptr;
-
+    ConstantField* constF_ptr;
+    
     System () {
         setFFuncMap ();
     };
@@ -37,6 +38,8 @@ class System {
     // Print system information.
     void printSysInfo ();
     void addIncompressibleFlow (IncompressibleFlow* incomFlow_ptr_t);
+    void addConstantField (ConstantField* constF_ptr_t);
+    
 };
 
 

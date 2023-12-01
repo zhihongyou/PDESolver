@@ -11,7 +11,7 @@
 #include "incompressibleflowclassGPU.cu"
 
 
-using namespace std; 
+using namespace std;
 
 // ===================================================================
 // Constructors
