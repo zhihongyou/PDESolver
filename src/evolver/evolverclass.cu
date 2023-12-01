@@ -46,7 +46,6 @@ void Evolver::run() {
             for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
                 if ((*f_ptr_i).expoData() =="on") {
                     (*f_ptr_i).export_conf(str_t,device,1);
-                    // (*f_ptr_i).export_conf_any((*f_ptr_i).rhs[0],"dt"+(*f_ptr_i).name(),str_t, device, 1);
                 };        
             };
             // Show progress of simulation.
@@ -121,51 +120,52 @@ void Evolver::initFields () {
 // ----------------------------------------------------------------------
 void Evolver::initRHSs() {
     
-    // Loop over fields to get functions appearing in their RHS.
+    // Loop over fields to get all functions appearing in their RHS.
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
         int num_grid=(*f_ptr_i).gridNumberAll();
-        int num_terms=(*f_ptr_i).rhsTerms().size();        
+        // Number of terms appeared on this field's RHS
+        int num_terms=(*f_ptr_i).rhsTerms().size();
+        // Get total number of functions
         int num_funcs=0;
         for (auto rhs_term_i : (*f_ptr_i).rhsTerms()) {
             num_funcs+=rhs_term_i.f_funcs.size();
         };
+        // Number of [0] explicit and [1] implicit terms
         (*f_ptr_i).rhs_ptrs_host.num_terms=new int[2];
         (*f_ptr_i).rhs_ptrs_host.num_funcs_1term=new int[num_terms];
+        // Prefactors of each term
         (*f_ptr_i).rhs_ptrs_host.prefactors=new double[num_terms];
+        // Numerical schemes used to calculate functions
         (*f_ptr_i).rhs_ptrs_host.schemes=new int[num_funcs];
+        // Pointers to memory storing the function fields
         (*f_ptr_i).rhs_ptrs_host.f_func_ptrs=new double * [num_funcs];
         
         
         // Loop over terms on the RHS of each field.
-        // cout <<"For field "<<(*f_ptr_i).name()<<": "<<endl;
         int i_func=0;
         int i_term=0;
         int num_terms_expl=0;
-        // cout <<"RHS for field : "<<(*f_ptr_i).name()<<endl;
-        // Add explicit terms
-        for (auto rhs_term_i : (*f_ptr_i).rhsTerms()) {            
-            // double* f_func_ptrs[10];
+        
+        // Loop over all explicit terms to add functions
+        for (auto rhs_term_i : (*f_ptr_i).rhsTerms()) {
             int i_func_1term=0;
             if (rhs_term_i.scheme=="explicit") {
                 num_terms_expl+=1;
-                // (*f_ptr_i).rhs_ptrs_host.schemes[i_term]=1;
                 
-                // Evaluate each operator applied on field
+                // Loop over operators in each term
                 for (auto f_func_i : rhs_term_i.f_funcs) {
                     // Add this term to function list of this field. Each function appears only once.                    
-                    // Check if function is already in the list
-                    // cout <<"Check term: "<<f_func_i.f_operator<<":"<<(*f_func_i.field_ptr).name()<<endl;
+                    // Check if function is already in the list                    
                     int toAdd=1;
                     for (int i=0; i<(*f_func_i.field_ptr).num_f_funcs; i++) {
                         FFuncItem f_func_i1=(*f_func_i.field_ptr).f_funcs_rhs[i];
-                        
+
+                        // If this function is already in the list
                         if (f_func_i.f_operator == f_func_i1.f_operator) {
                             toAdd=0;
-                        };
-                        // cout <<f_func_i.f_operator<<"="<<f_func_i1.f_operator<<", toAdd="<<toAdd<<endl;
+                        };                        
                     };
-                    if (toAdd==1) {
-                        // cout <<"Add term: "<<f_func_i.f_operator<<":"<<(*f_func_i.field_ptr).name()<<endl;
+                    if (toAdd==1) {                        
                         (*f_func_i.field_ptr).addFunctoRHS(f_func_i,device,FDMScheme);
                     };
                     
@@ -241,7 +241,7 @@ void Evolver::initRHSs() {
 // ----------------------------------------------------------------------
 void Evolver::getRHS(int i_field) {
 
-    // Evaluate field functions for priority=0
+    // Evaluate field functions for priority<=0
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
         if ((*f_ptr_i).priority()<=0) {
             evalFieldFuncs(f_ptr_i,i_field);            

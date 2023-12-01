@@ -146,10 +146,16 @@ void Field::setFieldConstGPU(double* f_t, double f_val, int Nx, int Ny, int Nbx,
 // ----------------------------------------------------------------------
 void Field::setRhsTerms(vector<rhsTerm> rhs_terms_t) {
     rhs_terms=rhs_terms_t;
-    FFuncArgs f_func_args1={gridNumber().x,gridNumber().y,gridNumberBoun().x,gridNumberBoun().y,gridSize().x,gridSize().y};
     for (int i=0; i<rhs_terms.size(); i++) {        
         for (int j=0; j<rhs_terms[i].f_funcs.size(); j++) {
-            rhs_terms[i].f_funcs[j].f_func_args=f_func_args1;
+            rhs_terms[i].f_funcs[j].f_func_args.Nx=gridNumber().x;
+            rhs_terms[i].f_funcs[j].f_func_args.Ny=gridNumber().y;
+            rhs_terms[i].f_funcs[j].f_func_args.Nbx=gridNumberBoun().x;
+            rhs_terms[i].f_funcs[j].f_func_args.Nby=gridNumberBoun().y;
+            rhs_terms[i].f_funcs[j].f_func_args.di=gridNumber().x+2*gridNumberBoun().x;
+            rhs_terms[i].f_funcs[j].f_func_args.dj=1;
+            rhs_terms[i].f_funcs[j].f_func_args.dx=gridSize().x;
+            rhs_terms[i].f_funcs[j].f_func_args.dy=gridSize().y;
         };
     };
 };
@@ -313,17 +319,21 @@ double* Field::getFFuncPtr(string f_operator) {
 
 
 // -----------------------------------------------------------------------
+// Add each function on the RHS to a list of function to be evaluated
 void Field::addFunctoRHS(FFuncDef f_func_i, string device, string func_scheme) {
     FFuncItem f_func_item;
     f_func_item.f_operator=f_func_i.f_operator;
     f_func_item.f_func_idx=num_f_funcs;
-    f_func_item.f_func_args=f_func_i.f_func_args;
+    f_func_item.f_func_args=f_func_i.f_func_args;    
     
     if (device=="cpu") {
-        allocField<double>(f_funcs_host[num_f_funcs], "cpu");
+        // Allocate a memory to store the function field
+        allocField<double>(f_funcs_host[num_f_funcs], "cpu");        
         if (f_func_map_all[{f_func_i.f_operator,func_scheme}]==0) {
+            // Onsite function
             f_func_item.f_func=f_func_map_all[{f_func_i.f_operator,""}];
         } else {
+            // Finite difference operator
             f_func_item.f_func=f_func_map_all[{f_func_i.f_operator,func_scheme}];
         };
     } else if (device=="gpu") {
