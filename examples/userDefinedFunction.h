@@ -9,23 +9,37 @@
 
 #include "/home/you/Research/codes/PDESolver/src/field/fieldFunction.h"
 
-
-// ------------------------------------------------------------------
-CUDA_CALLABLE_MEMBER double myFunc(double * f, int idx, FFuncArgs f_func_args) {
+// ===============================================================
+// ---------------------------------------------------------------
+CUDA_CALLABLE_MEMBER double getPressure(double * f, int idx, FFuncArgs f_func_args) {
     double func=0;
-    if (f[idx]>1) {
-        func=f[idx]-1;
+    if (f[idx]>f_func_args.f_func_arg2) {
+        func=f_func_args.f_func_arg1*(f[idx]-f_func_args.f_func_arg2);
     }
     return func;
 };
 
-__device__ FFuncType myFunc_dev=myFunc;
+// ---------------------------------------------------------------
+CUDA_CALLABLE_MEMBER double oneOverPhi(double * f, int idx, FFuncArgs f_func_args) {
+    double func=f[idx];
+    if (f[idx]>f_func_args.f_func_arg1) {
+        func=f_func_args.f_func_arg1;
+    }
+    return func;
+};
+
+// Define device functions========================================
+// ---------------------------------------------------------------
+__device__ FFuncType getPressure_dev=getPressure;
+__device__ FFuncType oneOverPhi_dev=oneOverPhi;
 
 
-// ----------------------------------------------------------------------
+// ---------------------------------------------------------------
 void addUserDefinedFuncs () {
-    f_func_map_all[{"myFunc",""}]=myFunc;
-    f_func_map_all_dev[{"myFunc",""}]=getFFuncDevPtr(&myFunc_dev);
+    f_func_map_all[{"getPressure",""}]=getPressure;
+    f_func_map_all[{"oneOverPhi",""}]=oneOverPhi;
+    f_func_map_all_dev[{"getPressure",""}]=getFFuncDevPtr(&getPressure_dev);
+    f_func_map_all_dev[{"oneOverPhi",""}]=getFFuncDevPtr(&oneOverPhi_dev);
 };
 
 

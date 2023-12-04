@@ -33,6 +33,7 @@
     + Allocate memory for additional fields, such as dtField for field with priority 0.
     + Initialize field.
     + Add a pointer to mySystem.fieldPointers.
+    + Fields are updated according their priorities, from the largest to the smallest. Priority 0 corresponds to fields with dynamics. Fields with nonzero priorities are merely assigned values according to their RHS expression, and boundary condition is applied right after this field is updated. So users should be careful about the order at which positive priority fields are pushed into the system.
 ** Declare governing equations:
 *** Examples   
     $ phi.RHS=collect(Lapl(phi),explicit(a,phi),explicit(b,phi,phi,phi));

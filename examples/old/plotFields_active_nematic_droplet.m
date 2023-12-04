@@ -1,5 +1,5 @@
 
-dire0='data/';
+dire0='../data/';
 
 t0=0;
 dt=1;
@@ -27,12 +27,12 @@ for t=t0:dt:ts
     % figure;
     if isfile([dire0 'phivx_' num2str(t) '.dat'])
         clf;
-        vx=reshape(importdata([dire0 'incomFlow.vx_' num2str(t) '.dat']),[N,M])';
-        vy=reshape(importdata([dire0 'incomFlow.vx_' num2str(t) '.dat']),[N,M])';
-        Qxx=reshape(importdata([dire0 'Qxx_' num2str(t) '.dat']),[N,M])';
-        Qxy=reshape(importdata([dire0 'Qxy_' num2str(t) '.dat']),[N,M])';
+        vx=reshape(importdata([dire0 'phivx_' num2str(t) '.dat']),[N,M])';
+        vy=reshape(importdata([dire0 'phivy_' num2str(t) '.dat']),[N,M])';
+        Qxx=reshape(importdata([dire0 'sigxx_' num2str(t) '.dat']),[N,M])';
+        Qxy=reshape(importdata([dire0 'sigxy_' num2str(t) '.dat']),[N,M])';
         phi=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
-        S2=reshape(importdata([dire0 'S2_' num2str(t) '.dat']),[N,M])';
+        S2=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
         
         vx=vx(4:N-3,4:N-3);
         vy=vy(4:N-3,4:N-3);
@@ -88,11 +88,11 @@ for t=t0:dt:ts
             theta1=theta(dn:dn:end,dn:dn:end);  
             
             subplot(1,3,1)
-            imagesc(xc,yc,phi,[0 1.4]);
+            imagesc(xc,yc,phi,[0 1]);
             colormap('Gray');
             colorbar;
             hold on;
-            S1=S1./max(max(S1));
+            S1=S1./(S1+1e-10);
             quiver(S1.*cos(theta1),S1.*sin(theta1),0.4,'Color','k', ...
                    'ShowArrowHead','off','AutoScale','off');
             quiver(-S1.*cos(theta1),-S1.*sin(theta1),0.4,'Color','k', ...
@@ -106,7 +106,7 @@ for t=t0:dt:ts
             colormap(gca,'summer');
             colorbar;
             hold on;
-            S1=S1./max(max(S1));
+            S1=S1./(S1+1e-10);
             quiver(S1.*cos(theta1),S1.*sin(theta1),0.4,'Color','k', ...
                    'ShowArrowHead','off','AutoScale','off');
             quiver(-S1.*cos(theta1),-S1.*sin(theta1),0.4,'Color','k', ...
@@ -118,8 +118,6 @@ for t=t0:dt:ts
             subplot(1,3,3)
             maxw=max(max(abs(vortex)));
             imagesc(xc,yc,vortex,[-maxw,maxw]);
-            % maxv=max(max(abs(v)));
-            % imagesc(xc,yc,v,[0,maxv]);
             colormap(gca,'jet');
             colorbar;
             hold on;

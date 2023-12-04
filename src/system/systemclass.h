@@ -19,6 +19,7 @@ class System {
     public:
     // Name of system.
     std::string name="system";
+    std::string dire_expo="./";
     // Pointer to mesh.
     Mesh* mesh_ptr=NULL;
     // Pointer to all fields.
@@ -30,6 +31,11 @@ class System {
     System () {
         setFFuncMap ();
     };
+
+    System (string dire_expo_t) {
+        dire_expo=dire_expo_t;
+        setFFuncMap ();
+    };
     
 
 //................Methods ................................................
@@ -39,6 +45,7 @@ class System {
     void printSysInfo ();
     void addIncompressibleFlow (IncompressibleFlow* incomFlow_ptr_t);
     void addConstantField (ConstantField* constF_ptr_t);
+    void addField (Field* f_ptr_t);
     
 };
 

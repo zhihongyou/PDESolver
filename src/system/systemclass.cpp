@@ -69,6 +69,10 @@ void System::addIncompressibleFlow (IncompressibleFlow* incomFlow_ptr_t) {
     field_ptrs.push_back(&(*incomFlow_ptr).phi);
     field_ptrs.push_back(&(*incomFlow_ptr).vx);
     field_ptrs.push_back(&(*incomFlow_ptr).vy);
+    (*incomFlow_ptr).omega.traits_host.dire_expo=dire_expo;
+    (*incomFlow_ptr).phi.traits_host.dire_expo=dire_expo;
+    (*incomFlow_ptr).vx.traits_host.dire_expo=dire_expo;
+    (*incomFlow_ptr).vy.traits_host.dire_expo=dire_expo;
 };
 
 // ------------------------------------------------------------
@@ -77,6 +81,12 @@ void System::addConstantField (ConstantField* constF_ptr_t) {
     field_ptrs.push_back(&(*constF_ptr).one);
     field_ptrs.push_back(&(*constF_ptr).zero);
     field_ptrs.push_back(&(*constF_ptr).pi);
+};
+
+// ------------------------------------------------------------
+void System::addField (Field* f_ptr_t) {    
+    field_ptrs.push_back(f_ptr_t);
+    (*f_ptr_t).traits_host.dire_expo=dire_expo;
 };
 
 // =======================================================================

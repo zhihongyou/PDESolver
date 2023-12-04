@@ -21,6 +21,7 @@ struct FieldTraits {
     string boun_cond = "periodic";
     string init_cond = "none";
     string expo_data = "on";
+    string dire_expo = "./";
     string equation = "";
     Mesh* mesh_ptr=NULL;
 };
@@ -191,6 +192,9 @@ class Field {
     string expoData() {
         return traits_host.expo_data;
     };
+    string dire_expo() {
+        return traits_host.dire_expo;
+    };
     string equation() {
         return traits_host.equation;
     };
@@ -215,7 +219,7 @@ class Field {
     };
     int spaceDim() {
         return (*traits_host.mesh_ptr).host.space_dim;
-    };
+    };    
     Vector3<int> gridNumber () {
         return (*traits_host.mesh_ptr).host.grid_number;
     };

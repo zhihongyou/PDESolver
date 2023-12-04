@@ -192,7 +192,7 @@ void Field::export_f_func(string f_operator, string str_t, string device, int in
 void Field::export_conf_any(double* f_t, string f_name, string str_t, string location_t="cpu" , int include_boun=0) {
     ofstream conf_file;
     int PrecData=8;
-    string conf_file_name="../data/"+f_name+"_"+ str_t + ".dat";
+    string conf_file_name=dire_expo()+f_name+"_"+ str_t + ".dat";
     conf_file.open(conf_file_name.c_str() );
     
     int idx;
