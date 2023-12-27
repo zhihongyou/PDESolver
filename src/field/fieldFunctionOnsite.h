@@ -19,7 +19,7 @@ __device__ FFuncType oneF_dev=oneF;
 
 // ------------------------------------------------------------------
 CUDA_CALLABLE_MEMBER double oneOverF(double * f, int idx, FFuncArgs f_func_args) {
-    return 1/f[idx];
+    return 1/(f[idx]+0.00000000000001);
 };
 
 __device__ FFuncType oneOverF_dev=oneOverF;

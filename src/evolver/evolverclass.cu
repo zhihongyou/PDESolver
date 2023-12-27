@@ -10,9 +10,9 @@
 using namespace std;
 
 
-// ======================================================================
+// =============================================================
 
-// ----------------------------------------------------------------------
+// ------------------------------------------------------------
 // Update system over time. This is the global control.
 void Evolver::run() {
     cout <<"Start running simulation ..." <<endl;
@@ -63,7 +63,7 @@ void Evolver::run() {
 };
 
 
-// ----------------------------------------------------------------------
+// -------------------------------------------------------------
 void Evolver::initEvolver() {
     // Initialize field function map used to identify functions to call
     //   based on the operator name.
@@ -77,7 +77,7 @@ void Evolver::initEvolver() {
 };
 
 
-// ----------------------------------------------------------------------
+// -------------------------------------------------------------
 // Allocate memory for fields 
 // Location of memory depends on device of the evolver.
 void Evolver::initFields () {            
@@ -117,7 +117,7 @@ void Evolver::initFields () {
 };
 
 
-// ----------------------------------------------------------------------
+// -------------------------------------------------------------
 void Evolver::initRHSs() {
     
     // Loop over fields to get all functions appearing in their RHS.
@@ -238,7 +238,7 @@ void Evolver::initRHSs() {
 };
 
 
-// ----------------------------------------------------------------------
+// -------------------------------------------------------------
 void Evolver::getRHS(int i_field) {
 
     // Evaluate field functions for priority<=0
@@ -250,18 +250,22 @@ void Evolver::getRHS(int i_field) {
 
     // Get new field values for those with priority>0
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
-        if ((*f_ptr_i).priority()>0) {
+        if ((*f_ptr_i).priority()>0) {            
             updateRHS(f_ptr_i,i_field);
+            if ((*f_ptr_i).specialty=="poissonEqField") {
+                poissonEqField* f_ptr_temp = (poissonEqField*) f_ptr_i;
+                (*f_ptr_temp).solvePoissonEq(i_field);
+            };
             // Apply periodic boundary condition.
             if (device=="cpu") {
                 (*f_ptr_i).applyBounCondPeriCPU((*f_ptr_i).f[i_field]);
             } else if (device=="gpu"){
                 (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_field]);
-            };
-
-            if ((*f_ptr_i).specialty=="IncompressibleFlow.omega") {
-                (*(*system_ptr).incomFlow_ptr).getVelocity(i_field);
-            };
+            };            
+        };
+        // Whenever omega is updated, get new velocity.
+        if ((*f_ptr_i).specialty=="IncompressibleFlow.omega") {
+            (*(*system_ptr).incomFlow_ptr).getVelocity(i_field);
         };
     };
 
@@ -276,13 +280,17 @@ void Evolver::getRHS(int i_field) {
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
         if ((*f_ptr_i).priority()==0) {
             updateRHS(f_ptr_i,i_field);
+            // Whenever omega is updated, get new velocity.
+            if ((*f_ptr_i).specialty=="IncompressibleFlow.omega") {
+            (*(*system_ptr).incomFlow_ptr).getVelocity(i_field);
+        };
         };
     };
 
 };
 
 
-// ----------------------------------------------------------------------
+// -------------------------------------------------------------
 void Evolver::evalFieldFuncs(Field* f_ptr_i, int i_field) {
 
     for (int i=0; i<(*f_ptr_i).num_f_funcs; i++) {
@@ -299,7 +307,7 @@ void Evolver::evalFieldFuncs(Field* f_ptr_i, int i_field) {
 };
 
 
-// -----------------------------------------------------------------------
+// -------------------------------------------------------------
 void Evolver::updateRHS(Field* f_ptr_t, int i_field) {
     int Nx=(*f_ptr_t).gridNumber().x;
     int Ny=(*f_ptr_t).gridNumber().y;
@@ -334,7 +342,8 @@ void Evolver::updateRHS(Field* f_ptr_t, int i_field) {
     
 };
 
-// ----------------------------------------------------------------------
+
+// -------------------------------------------------------------
 void Evolver::updateRHSCoreCPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs_temp, int Nx, int Ny, int Nbx, int Nby) {
     
     double temp;
@@ -365,55 +374,7 @@ void Evolver::updateRHSCoreCPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs_t
 };
 
 
-// ----------------------------------------------------------------------
-void Evolver::fieldsUpdate(int i_f_new, int i_f_old, int i_df, double time_step_t) {
-    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
-        if ((*f_ptr_i).priority() ==0) {
-            if (device=="cpu") {            
-                fieldUpdateCPU(f_ptr_i,i_f_new,i_f_old,i_df,time_step_t);
-                if ((*f_ptr_i).bounCond()=="periodic") {
-                    (*f_ptr_i).applyBounCondPeriCPU((*f_ptr_i).f[i_f_new]);
-                };
-            } else if (device=="gpu") {
-                fieldUpdateGPU(f_ptr_i,i_f_new,i_f_old,i_df,time_step_t);
-                if ((*f_ptr_i).bounCond()=="periodic") {
-                    (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_f_new]);
-                };
-            };
-            if ((*f_ptr_i).specialty=="IncompressibleFlow.omega") {
-                (*(*system_ptr).incomFlow_ptr).getVelocity(i_f_new);
-            };
-        };        
-    };
-};
-
-// ----------------------------------------------------------------------
-void Evolver::fieldUpdateCPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t) {
-    int Nx=(*f_ptr_t).gridNumber().x;
-    int Ny=(*f_ptr_t).gridNumber().y;
-    int Nbx=(*f_ptr_t).gridNumberBoun().x;
-    int Nby=(*f_ptr_t).gridNumberBoun().y;
-    
-    for (int j=0; j<Ny;j++) {
-        for (int i=0; i<Nx; i++) {        
-            int idx=(j+Nby)*(Nx+2*Nbx)+i+Nbx;
-            (*f_ptr_t).f[i_f_new][idx]=((*f_ptr_t).f[i_f_old][idx]+(*f_ptr_t).rhs[i_df][idx]*time_step_t)/(1+(*f_ptr_t).lhs[i_df][idx]*time_step_t);
-        };
-    };
-};
-
-// ----------------------------------------------------------------------
-void Evolver::fieldUpdateGPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t) {
-    
-    int Nx=(*f_ptr_t).gridNumber().x;
-    int Ny=(*f_ptr_t).gridNumber().y;
-    int Nbx=(*f_ptr_t).gridNumberBoun().x;
-    int Nby=(*f_ptr_t).gridNumberBoun().y;
-    fieldUpdateGPUCore<<<Ny,Nx>>>((*f_ptr_t).f[i_f_new], (*f_ptr_t).f[i_f_old], (*f_ptr_t).rhs[i_df], (*f_ptr_t).lhs[i_df], time_step_t, Nx, Ny, Nbx, Nby);
-};
-
-
-// ----------------------------------------------------------------------
+// -------------------------------------------------------------
 void Evolver::showProgress() {
   // Print progress.
     double progress=(time_now-time_start)/(time_stop-time_start);

@@ -14,7 +14,7 @@ using namespace std;
 class System {
     // private:
     
-    // -------------------------------------------------------------------
+    // ---------------------------------------------------------------
     // one can call outside of the class.
     public:
     // Name of system.

@@ -13,7 +13,7 @@
 
 using namespace std;
 
-// ===================================================================
+// =============================================================
 // Constructors
 IncompressibleFlow::IncompressibleFlow (Mesh* mesh_ptr_t, string name_t) {
     mesh_ptr=mesh_ptr_t;
@@ -27,7 +27,7 @@ IncompressibleFlow::IncompressibleFlow (Mesh* mesh_ptr_t, string name_t) {
 };
 
 
-// -------------------------------------------------------------------
+// -------------------------------------------------------------
 IncompressibleFlow::IncompressibleFlow (Mesh* mesh_ptr_t, string name_t, int priority_t) {
     mesh_ptr=mesh_ptr_t;
     name=name_t;
@@ -39,7 +39,7 @@ IncompressibleFlow::IncompressibleFlow (Mesh* mesh_ptr_t, string name_t, int pri
 };
 
 
-// -------------------------------------------------------------------
+// -------------------------------------------------------------
 IncompressibleFlow::IncompressibleFlow (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t) {
     mesh_ptr=mesh_ptr_t;
     name=name_t;
@@ -50,7 +50,7 @@ IncompressibleFlow::IncompressibleFlow (Mesh* mesh_ptr_t, string name_t, int pri
     initFields ();
 };
 
-// -------------------------------------------------------------------
+// -------------------------------------------------------------
 IncompressibleFlow::IncompressibleFlow (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t, string boun_cond_t, string expo_data_t) {
     mesh_ptr=mesh_ptr_t;
     name=name_t;
@@ -62,12 +62,18 @@ IncompressibleFlow::IncompressibleFlow (Mesh* mesh_ptr_t, string name_t, int pri
 };
 
 
-// -------------------------------------------------------------------
+// -------------------------------------------------------------
 void IncompressibleFlow::initFields () {
-    setFieldProperties(&vx, name+".vx",-1);
-    setFieldProperties(&vy, name+".vy",-1);
     setFieldProperties(&omega, name+".omega",priority);
-    setFieldProperties(&phi, name+".phi",-1);
+    if (priority == 0) {
+        setFieldProperties(&vx, name+".vx",-1);
+        setFieldProperties(&vy, name+".vy",-1);    
+        setFieldProperties(&phi, name+".phi",-1);
+    } else {
+        setFieldProperties(&vx, name+".vx",priority);
+        setFieldProperties(&vy, name+".vy",priority);
+        setFieldProperties(&phi, name+".phi",priority);
+    };
     // This can trigger calculating stream function and velocity after
     //   a new omega has been obtained
     omega.specialty="IncompressibleFlow.omega";
@@ -86,7 +92,7 @@ void IncompressibleFlow::initFields () {
 };
 
 
-// -------------------------------------------------------------------
+// -------------------------------------------------------------
 void IncompressibleFlow::setFieldProperties (Field* field_ptr, string field_name, int priority_t) {
     (*field_ptr).traits_host.mesh_ptr=mesh_ptr;
     (*field_ptr).traits_host.name=field_name;
@@ -101,7 +107,7 @@ void IncompressibleFlow::setFieldProperties (Field* field_ptr, string field_name
 };
 
 
-// -------------------------------------------------------------------
+// -------------------------------------------------------------
 void IncompressibleFlow::setFieldValues (string init_cond_t) {
     int Nx=vx.gridNumber().x;
     int Ny=vx.gridNumber().y;
@@ -128,7 +134,7 @@ void IncompressibleFlow::setFieldValues (string init_cond_t) {
 };
 
 
-// --------------------------------------------------------------------
+// -------------------------------------------------------------
 void IncompressibleFlow::setOmegaValues () {
     int Nx=vx.gridNumber().x;
     int Ny=vx.gridNumber().y;
@@ -150,7 +156,7 @@ void IncompressibleFlow::setOmegaValues () {
 };
 
 
-// -------------------------------------------------------------------
+// -------------------------------------------------------------
 void IncompressibleFlow::getVelocity (int i_field) {
     int Nx=vx.gridNumber().x;
     int Ny=vx.gridNumber().y;
@@ -193,7 +199,7 @@ void IncompressibleFlow::getVCoreCPU(double* phi, double* vx, double* vy, FFuncT
 }
 
 
-//=======================================================================
+//==============================================================
 void IncompressibleFlow::initPoissonSolver() {
   // Creating wavenumber array
     double kx,ky;
@@ -225,6 +231,6 @@ void IncompressibleFlow::initPoissonSolver() {
 }
 
 
-// =====================================================================
+// =============================================================
 
 #endif

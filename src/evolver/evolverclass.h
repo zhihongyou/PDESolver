@@ -5,6 +5,7 @@
 #include <string>
 #include <time.h>
 #include "../system/systemclass.cpp"
+#include "../field/poissonEq-field/poissonEqFieldclass.cu"
 #include "../field/incompressible-flow/incompressibleflowclass.cu"
 #include "../field/constant-field/constantfieldclass.cu"
 
@@ -23,7 +24,7 @@ public:
     // Explicit or semi-implicit schemes for potential terms.
     // "explicit" (default) or "semiImplicit".
     std::string scheme="EulerForward";
-
+    
     // Finite difference scheme
     std::string FDMScheme="CentralDifferenceO2Iso";
 

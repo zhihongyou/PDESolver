@@ -139,7 +139,8 @@ int main() {
     Evolver evolver(&mySys,0,T,dt,dtExpo,device,timeScheme,FDMScheme);
 
     // Running simulations
-    evolver.run(); 
+    evolver.run();
+    
     
     // -----------------------------------------------------------
     // Testing

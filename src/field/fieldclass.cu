@@ -22,7 +22,7 @@
 using namespace std;
 
 
-// =======================================================================
+// ==============================================================
 // Constructors
 Field::Field (Mesh* mesh_ptr_t, string name_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
@@ -32,25 +32,11 @@ Field::Field (Mesh* mesh_ptr_t, string name_t) {
     traits_host.boun_cond="periodic";
     traits_host.init_cond="sin";
     traits_host.expo_data="on";
-    // Initiate field on host, which will then be copied to f.
-    allocField<double>(f_host[0], "cpu");
-    if (traits_host.init_cond=="Gaussian") {
-        initFieldGaus(0,10,1);
-    } else if (traits_host.init_cond=="zeros") {
-        initFieldConst(0);
-    } else if (traits_host.init_cond=="ones") {
-        initFieldConst(1);
-    } else if (traits_host.init_cond=="sin") {
-        initFieldSin(0.01,2,0);        
-    };
-    num_f_funcs=0;
-    for (int i=0; i<200; i++) {
-        f_funcs_host[i]=NULL;
-    };
+    initFieldAddi();
 };
 
 
-// =======================================================================
+// ==============================================================
 // Constructors
 Field::Field (Mesh* mesh_ptr_t, string name_t, int priority_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
@@ -60,24 +46,11 @@ Field::Field (Mesh* mesh_ptr_t, string name_t, int priority_t) {
     traits_host.boun_cond="periodic";
     traits_host.init_cond="sin";
     traits_host.expo_data="on";
-    // Initiate field on host, which will then be copied to f.
-    allocField<double>(f_host[0], "cpu");
-    if (traits_host.init_cond=="Gaussian") {
-        initFieldGaus(0,10,1);
-    } else if (traits_host.init_cond=="zeros") {
-        initFieldConst(0);
-    } else if (traits_host.init_cond=="ones") {
-        initFieldConst(1);
-    } else if (traits_host.init_cond=="sin") {
-        initFieldSin(0.01,4,0);        
-    };
-    num_f_funcs=0;
-    for (int i=0; i<200; i++) {
-        f_funcs_host[i]=NULL;
-    };
+    initFieldAddi();
 };
 
-// -----------------------------------------------------------------------
+
+// -------------------------------------------------------------
 Field::Field (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
     traits_host.name=name_t;
@@ -86,25 +59,11 @@ Field::Field (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_
     traits_host.boun_cond="periodic";
     traits_host.init_cond=init_cond_t;
     traits_host.expo_data="on";
-    // Initiate field on host, which will then be copied to f.
-    allocField<double>(f_host[0], "cpu");
-    if (traits_host.init_cond=="Gaussian") {
-        initFieldGaus(0,10,0.01);
-    } else if (traits_host.init_cond=="ones") {
-        initFieldConst(1);
-    } else if (traits_host.init_cond=="zeros") {
-        initFieldConst(0);
-    } else if (traits_host.init_cond=="sin") {
-        initFieldSin(0.01,4,0);        
-    };
-    num_f_funcs=0;
-    for (int i=0; i<200; i++) {
-        f_funcs_host[i]=NULL;
-    };
+    initFieldAddi();
 };
 
 
-// -----------------------------------------------------------------------
+// -------------------------------------------------------------
 Field::Field (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t, string boun_cond_t, string expo_data_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
     traits_host.name=name_t;
@@ -113,16 +72,21 @@ Field::Field (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_
     traits_host.boun_cond=boun_cond_t;
     traits_host.init_cond=init_cond_t;
     traits_host.expo_data=expo_data_t;
-    // Initiate field on host, which will then be copied to f.
+    initFieldAddi();
+};
+
+
+// -------------------------------------------------------------
+void Field::initFieldAddi() {
     allocField<double>(f_host[0], "cpu");
     if (traits_host.init_cond=="Gaussian") {
         initFieldGaus(0,10,1);
-    } else if (traits_host.init_cond=="ones") {
-        initFieldConst(1);
     } else if (traits_host.init_cond=="zeros") {
         initFieldConst(0);
+    } else if (traits_host.init_cond=="ones") {
+        initFieldConst(1);
     } else if (traits_host.init_cond=="sin") {
-        initFieldSin(0.01,4,0);        
+        initFieldSin(0.01,2,0);
     };
     num_f_funcs=0;
     for (int i=0; i<200; i++) {
@@ -131,19 +95,19 @@ Field::Field (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_
 };
 
 
-// ----------------------------------------------------------------------
+// -------------------------------------------------------------
 void Field::setFieldConstCPU(double* f_t, double f_val, int Nx, int Ny, int Nbx, int Nby) {
     setFieldConstCPUCore(f_t, f_val, Nx, Ny, Nbx, Nby);
 };
 
 
-// ----------------------------------------------------------------------
+// ------------------------------------------------------------
 void Field::setFieldConstGPU(double* f_t, double f_val, int Nx, int Ny, int Nbx, int Nby) {
     setFieldConstGPUCore<<<Ny,Nx>>>(f_t, f_val, Nx, Ny, Nbx, Nby);
 };
 
 
-// ----------------------------------------------------------------------
+// -----------------------------------------------------------
 void Field::setRhsTerms(vector<rhsTerm> rhs_terms_t) {
     rhs_terms=rhs_terms_t;
     for (int i=0; i<rhs_terms.size(); i++) {        
@@ -161,7 +125,7 @@ void Field::setRhsTerms(vector<rhsTerm> rhs_terms_t) {
 };
 
 
-// ----------------------------------------------------------------------
+// -------------------------------------------------------------
 void Field::export_conf(string str_t, string device, int include_boun=0) {
     if (device=="cpu") {        
         export_conf_any(f[0],name(),str_t, "cpu", include_boun);
@@ -170,7 +134,7 @@ void Field::export_conf(string str_t, string device, int include_boun=0) {
     };
 }
 
-// ----------------------------------------------------------------------
+// -------------------------------------------------------------
 void Field::export_f_func(string f_operator, string str_t, string device, int include_boun=0) {
 
     int f_func_idx;
@@ -188,7 +152,7 @@ void Field::export_f_func(string f_operator, string str_t, string device, int in
 }
 
 
-// ----------------------------------------------------------------------
+// -------------------------------------------------------------
 void Field::export_conf_any(double* f_t, string f_name, string str_t, string location_t="cpu" , int include_boun=0) {
     ofstream conf_file;
     int PrecData=8;
@@ -349,6 +313,9 @@ void Field::addFunctoRHS(FFuncDef f_func_i, string device, string func_scheme) {
 };
 
 
+void Field::getRHSAddi(int i_field) {
+    // cout << "Getting additional rhs." <<endl;
+};
 
 // ------------------------------------------------------------------
 

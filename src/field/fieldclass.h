@@ -11,7 +11,7 @@
 using namespace std; 
 
 
-// ======================================================================
+// =============================================================
 // Data structure to store the traits of fields.
 struct FieldTraits {
     string name = "fieldTemp";
@@ -27,7 +27,7 @@ struct FieldTraits {
 };
 
 
-// =======================================================================
+// =============================================================
 class Field {
     
     
@@ -50,6 +50,7 @@ class Field {
     // Instead, device can only use f_dp[0][idx], where f_dp is a device
     //   pointer point to device data.
     double* f[5]={NULL,NULL,NULL,NULL,NULL};
+    // Store the RHS of fields, only used for priority=0
     double* rhs[5]={NULL,NULL,NULL,NULL,NULL};
     double* lhs[5]={NULL,NULL,NULL,NULL,NULL};
     double** f_funcs_host=new double*[200];
@@ -99,10 +100,10 @@ class Field {
     double* cotf=NULL;
     
     
-    // ===================================================================
+    // =========================================================
     // Methods
     
-    // ===================================================================
+    // ==========================================================
     // Constructor
     Field () {};
     Field (Mesh* mesh_ptr_t, string name_t);
@@ -110,14 +111,18 @@ class Field {
     Field (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t);
     Field (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t, string boun_cond_t, string expo_data_t);
     
-    // ------------------------------------------------------------------
+    // ---------------------------------------------------------
     // Get rhs
     void getRHS(int i_f_copy);
+    void getRHSAddi(int i_f_copy);
     template <typename T>
     void allocField(T* &f_t, string location);
     double* getFFuncPtr(string f_operator);
-    // -------------------------------------------------------------------
-    // Field initialization
+
+    
+    // ---------------------------------------------------------
+    // Field initialization    
+    void initFieldAddi();
     // Constant field
     void initFieldConst(double f_value);
     // Random field with uniform distribution
