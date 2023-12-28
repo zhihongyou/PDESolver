@@ -44,8 +44,7 @@ int main() {
     
     // Creating fields.
     Field f(&mesh, "f",0);    
-    LaplaceNFEqField phi(&mesh, "phi",1);
-    phi.setNLaplace(2);
+    poissonEqField phi(&mesh, "phi",1);
     
     f.setRhsTerms({
         {{{&f}}}

@@ -1,5 +1,5 @@
-#ifndef POISSONEQFIELDCLASS_CU
-#define POISSONEQFIELDCLASS_CU
+#ifndef LAPLACENFEQFIELDCLASS_CU
+#define LAPLACENFEQFIELDCLASS_CU
 
 #include <iostream> 
 #include <vector>
@@ -7,8 +7,8 @@
 #include <map>
 #include <cufft.h>
 #include <cufftXt.h>
-#include "poissonEqFieldclass.h"
-#include "poissonEqFieldclassGPU.cu"
+#include "LaplaceNFEqFieldClass.h"
+#include "LaplaceNFEqFieldClassGPU.cu"
 
 
 using namespace std;
@@ -17,7 +17,7 @@ using namespace std;
 // Constructors
 // =============================================================
 // Constructors
-poissonEqField::poissonEqField (Mesh* mesh_ptr_t, string name_t) {
+LaplaceNFEqField::LaplaceNFEqField (Mesh* mesh_ptr_t, string name_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
     traits_host.name=name_t;
     traits_host.priority=1;
@@ -30,7 +30,7 @@ poissonEqField::poissonEqField (Mesh* mesh_ptr_t, string name_t) {
 
 
 // -------------------------------------------------------------
-poissonEqField::poissonEqField (Mesh* mesh_ptr_t, string name_t, int priority_t) {
+LaplaceNFEqField::LaplaceNFEqField (Mesh* mesh_ptr_t, string name_t, int priority_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
     traits_host.name=name_t;
     traits_host.priority=priority_t;
@@ -42,7 +42,7 @@ poissonEqField::poissonEqField (Mesh* mesh_ptr_t, string name_t, int priority_t)
 
 
 // -------------------------------------------------------------
-poissonEqField::poissonEqField (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t) {
+LaplaceNFEqField::LaplaceNFEqField (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
     traits_host.name=name_t;
     traits_host.priority=priority_t;
@@ -53,7 +53,7 @@ poissonEqField::poissonEqField (Mesh* mesh_ptr_t, string name_t, int priority_t,
 };
 
 // -------------------------------------------------------------
-poissonEqField::poissonEqField (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t, string boun_cond_t, string expo_data_t) {
+LaplaceNFEqField::LaplaceNFEqField (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t, string boun_cond_t, string expo_data_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
     traits_host.name=name_t;
     traits_host.priority=priority_t;
@@ -65,27 +65,27 @@ poissonEqField::poissonEqField (Mesh* mesh_ptr_t, string name_t, int priority_t,
 
 
 // -------------------------------------------------------------
-void poissonEqField::initFieldAddi () {    
+void LaplaceNFEqField::initFieldAddi () {    
     allocField<double>(f_host[0], "cpu");
     num_f_funcs=0;
     for (int i=0; i<200; i++) {
         f_funcs_host[i]=NULL;
     };
-    specialty="poissonEqField";
-    initPoissonSolver();
-    cout << "Initiating a poissonEqField: " << name()<<"."<<endl;
+    specialty="LaplaceNFEqField";
+    initLaplaceNFSolver();
+    cout << "Initiating a LaplaceNFEqField: " << name()<<"."<<endl;
 };
 
 
 // --------------------------------------------------------------
-// void poissonEqField::getRHSAddi (int i_field) {
-    // solvePoissonEq(i_field);
+void LaplaceNFEqField::getRHSAddi (int i_field) {
+    solveLaplaceNFEq(i_field);
     // cout << "Solving the poisson equation." <<endl;
-// };
+};
 
 
 // --------------------------------------------------------------
-void poissonEqField::solvePoissonEq (int i_field) {
+void LaplaceNFEqField::solveLaplaceNFEq (int i_field) {
     int Nx=gridNumber().x;
     int Ny=gridNumber().y;
     int Nbx=gridNumberBoun().x;
@@ -93,26 +93,36 @@ void poissonEqField::solvePoissonEq (int i_field) {
     double dx=gridSize().x;
     double dy=gridSize().y;
     
-    getPhiGPU<<<Ny,Nx>>>(phi_complex, f[i_field], f[i_field], poisson_k2_dev, Nx, Ny, Nbx, Nby, 0);
+    solveLaplaceNFEqCoreGPU<<<Ny,Nx>>>(phi_complex, f[i_field], f[i_field], k2n_dev, Nx, Ny, Nbx, Nby, 0);
     cufftExecZ2Z(cufftPlan,phi_complex,phi_complex,CUFFT_FORWARD);
-    getPhiGPU<<<Ny,Nx>>>(phi_complex, f[i_field], rhs[i_field], poisson_k2_dev, Nx, Ny, Nbx, Nby, 1);
+    solveLaplaceNFEqCoreGPU<<<Ny,Nx>>>(phi_complex, f[i_field], rhs[i_field], k2n_dev, Nx, Ny, Nbx, Nby, 1);
     cufftExecZ2Z(cufftPlan,phi_complex,phi_complex,CUFFT_INVERSE);
-    getPhiGPU<<<Ny,Nx>>>(phi_complex, f[i_field], f[i_field], poisson_k2_dev, Nx, Ny, Nbx, Nby, 2);
+    solveLaplaceNFEqCoreGPU<<<Ny,Nx>>>(phi_complex, f[i_field], f[i_field], k2n_dev, Nx, Ny, Nbx, Nby, 2);
     applyBounCondPeriGPU(f[i_field]);    
 };
 
 
 //===============================================================
-void poissonEqField::initPoissonSolver() {
+void LaplaceNFEqField::initLaplaceNFSolver() {
   // Creating wavenumber array
+    int Nx=gridNumber().x;
+    int Ny=gridNumber().y;
+    double dx=gridSize().x;
+    double dy=gridSize().y;
+    k2n_host=new real[Nx*Ny];
+    cudaMalloc((void **)&k2n_dev, (Nx*Ny)*sizeof(double));
+    cudaMalloc((void **)&phi_complex, sizeof(cufftDoubleComplex)*Nx*Ny);
+    setk2n();    
+    cufftPlan2d(&cufftPlan, Ny, Nx, CUFFT_Z2Z);
+}
+
+//==============================================================
+void LaplaceNFEqField::setk2n() {
     double kx,ky;
     int Nx=gridNumber().x;
     int Ny=gridNumber().y;
     double dx=gridSize().x;
     double dy=gridSize().y;
-    poisson_k2_host=new real[Nx*Ny];
-    cudaMalloc((void **)&poisson_k2_dev, (Nx*Ny)*sizeof(double));
-    cudaMalloc((void **)&phi_complex, sizeof(cufftDoubleComplex)*Nx*Ny);
     
     for (int i=0; i<Ny; i++){
         ky = 2*Pi*i/(Ny*dy+0.0);
@@ -125,14 +135,19 @@ void poissonEqField::initPoissonSolver() {
                 kx=2*Pi*(j-Nx)/(Nx*dx+0.0);
             }
             int idx=i*Nx+j;
-            poisson_k2_host[idx]=kx*kx+ky*ky;
+            k2n_host[idx]=pow(-kx*kx-ky*ky, n_laplace);
         }
     }
-    poisson_k2_host[0]=1;
-    cudaMemcpy(poisson_k2_dev,poisson_k2_host,sizeof(double)*Nx*Ny,cudaMemcpyHostToDevice);
-    cufftPlan2d(&cufftPlan, Ny, Nx, CUFFT_Z2Z);
-}
+    k2n_host[0]=1;
+    cudaMemcpy(k2n_dev,k2n_host,sizeof(double)*Nx*Ny,cudaMemcpyHostToDevice);
+};
 
+//===============================================================
+void LaplaceNFEqField::setNLaplace (int n_laplace_t) {
+    n_laplace=n_laplace_t;
+    setk2n();
+    cout << "n_laplace is set to: " <<n_laplace <<"."<<endl;
+};
 
 // ==============================================================
 

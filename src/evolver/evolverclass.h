@@ -6,6 +6,7 @@
 #include <time.h>
 #include "../system/systemclass.cpp"
 #include "../field/poissonEq-field/poissonEqFieldclass.cu"
+#include "../field/LaplaceNFEqField/LaplaceNFEqFieldClass.cu"
 #include "../field/incompressible-flow/incompressibleflowclass.cu"
 #include "../field/constant-field/constantfieldclass.cu"
 
