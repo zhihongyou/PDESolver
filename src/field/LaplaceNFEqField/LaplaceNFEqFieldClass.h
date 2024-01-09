@@ -11,7 +11,7 @@ using namespace std;
 
 
 // ===============================================================
-class LaplaceNFEqField :public Field{
+class LaplaceNFEqField :public Field {
     // This class is used to characterize a filed governed by the
     //   Poisson-like equation (\nabla^2)^n_laplace \phi = f,
     //   where f is specified by the RHS of field \phi.

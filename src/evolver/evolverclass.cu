@@ -261,12 +261,13 @@ void Evolver::getRHS(int i_field) {
                 (*f_ptr_i).applyBounCondPeriCPU((*f_ptr_i).f[i_field]);
             } else if (device=="gpu"){
                 (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_field]);
-            };            
-        };
-        // Whenever omega is updated, get new velocity.
-        if ((*f_ptr_i).specialty=="IncompressibleFlow.omega") {
-            (*(*system_ptr).incomFlow_ptr).getVelocity(i_field);
-        };
+            };
+            // Whenever omega is updated, get new velocity.
+            if ((*f_ptr_i).specialty=="IncompFlowOmega") {
+                IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
+                (*f_ptr_temp).getVelocity(i_field);                
+            };
+        };        
     };
 
     // Evaluate field functions for priority>0 fields
@@ -280,10 +281,12 @@ void Evolver::getRHS(int i_field) {
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
         if ((*f_ptr_i).priority()==0) {
             updateRHS(f_ptr_i,i_field);
+            // DO NOT need this.
             // Whenever omega is updated, get new velocity.
-            if ((*f_ptr_i).specialty=="IncompressibleFlow.omega") {
-            (*(*system_ptr).incomFlow_ptr).getVelocity(i_field);
-        };
+            // if ((*f_ptr_i).specialty=="IncompFlowOmega") {
+            //     IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
+            //     (*f_ptr_temp).getVelocity(i_field);
+            // };
         };
     };
 

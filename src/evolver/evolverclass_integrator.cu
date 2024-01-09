@@ -44,8 +44,10 @@ void Evolver::fieldsUpdate(int i_f_new, int i_f_old, int i_df, double time_step_
                     (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_f_new]);
                 };
             };
-            if ((*f_ptr_i).specialty=="IncompressibleFlow.omega") {
-                (*(*system_ptr).incomFlow_ptr).getVelocity(i_f_new);
+            // Get velocity
+            if ((*f_ptr_i).specialty=="IncompFlowOmega") {
+                IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
+                (*f_ptr_temp).getVelocity(i_f_new);
             };
         };        
     };

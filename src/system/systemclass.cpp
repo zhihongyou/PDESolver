@@ -63,24 +63,20 @@ void System::printSysInfo () {
 
 
 // ------------------------------------------------------------
-void System::addIncompressibleFlow (IncompressibleFlow* incomFlow_ptr_t) {
-    incomFlow_ptr=incomFlow_ptr_t;
-    field_ptrs.push_back(&(*incomFlow_ptr).omega);
-    field_ptrs.push_back(&(*incomFlow_ptr).phi);
-    field_ptrs.push_back(&(*incomFlow_ptr).vx);
-    field_ptrs.push_back(&(*incomFlow_ptr).vy);
-    (*incomFlow_ptr).omega.traits_host.dire_expo=dire_expo;
-    (*incomFlow_ptr).phi.traits_host.dire_expo=dire_expo;
-    (*incomFlow_ptr).vx.traits_host.dire_expo=dire_expo;
-    (*incomFlow_ptr).vy.traits_host.dire_expo=dire_expo;
+void System::addIncompFlow (IncompFlow* incompFlow_ptr_t) {
+    incompFlow_ptr=incompFlow_ptr_t;
+    addField(&(*incompFlow_ptr).omega);
+    addField(&(*incompFlow_ptr).phi);
+    addField(&(*incompFlow_ptr).vx);
+    addField(&(*incompFlow_ptr).vy);
 };
 
 // ------------------------------------------------------------
 void System::addConstantField (ConstantField* constF_ptr_t) {
     constF_ptr=constF_ptr_t;
-    field_ptrs.push_back(&(*constF_ptr).one);
-    field_ptrs.push_back(&(*constF_ptr).zero);
-    field_ptrs.push_back(&(*constF_ptr).pi);
+    addField(&(*constF_ptr).one);
+    addField(&(*constF_ptr).zero);
+    addField(&(*constF_ptr).pi);
 };
 
 // ------------------------------------------------------------

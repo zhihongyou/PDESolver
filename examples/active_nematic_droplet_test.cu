@@ -19,7 +19,7 @@
 using namespace std;
 
 
-// ======================================================================
+// ==============================================================
 int main() {
 
     // Simulation parameters
@@ -66,7 +66,7 @@ int main() {
     Field Qxx(&mesh, "Qxx",0,"zeros");
     Field Qxy(&mesh, "Qxy",0,"zeros","periodic","on");    
     Field phi(&mesh, "phi",0,"zeros","periodic","on");
-    IncompressibleFlow incompFlow(&mesh, "incompFlow");   
+    IncompFlow incompFlow(&mesh, "incompFlow");   
     
     S2.setRhsTerms({
         {4,{{&Qxx},{&Qxx}}},
@@ -111,8 +111,8 @@ int main() {
     });
     
     incompFlow.omega.setRhsTerms({
-        {-0, { {&incompFlow.vx}, {"d1x",&incompFlow.omega} }},
-        {-0, { {&incompFlow.vy}, {"d1y",&incompFlow.omega} }},
+        {-1, { {&incompFlow.vx}, {"d1x",&incompFlow.omega} }},
+        {-1, { {&incompFlow.vy}, {"d1y",&incompFlow.omega} }},
         {eta, {{"laplace",&incompFlow.omega}}},
         {-Gamma, {{&incompFlow.omega}}},
         {alpha, {{"d2x",&Qxy}, {&phi}}},
@@ -128,7 +128,7 @@ int main() {
     mySys.addField(&Qxx);
     mySys.addField(&Qxy);
     mySys.addField(&phi);
-    mySys.addIncompressibleFlow(&incompFlow);
+    mySys.addIncompFlow(&incompFlow);
     // phi.initFieldConst(phi0);
     phi.initFieldGaus(L/2, 0.1*L, 1.5);
     

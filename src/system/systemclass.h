@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include "../field/fieldclass.cu"
-#include "../field/incompressible-flow/incompressibleflowclass.cu"
+#include "../field/IncompFlow/IncompFlowClass.cu"
 #include "../field/constant-field/constantfieldclass.cu"
 
 using namespace std; 
@@ -25,7 +25,7 @@ class System {
     // Pointer to all fields.
     std::vector<Field*> field_ptrs;
     
-    IncompressibleFlow* incomFlow_ptr;
+    IncompFlow* incompFlow_ptr;
     ConstantField* constF_ptr;
     
     System () {
@@ -43,7 +43,7 @@ class System {
     // System ();
     // Print system information.
     void printSysInfo ();
-    void addIncompressibleFlow (IncompressibleFlow* incomFlow_ptr_t);
+    void addIncompFlow (IncompFlow* incompFlow_ptr_t);
     void addConstantField (ConstantField* constF_ptr_t);
     void addField (Field* f_ptr_t);
     

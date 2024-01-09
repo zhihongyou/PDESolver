@@ -7,8 +7,8 @@ h=1;
 figure;
 
 for t=1:9
-    f0=reshape(importdata([dire0 'f_' num2str(t) '.dat']),[Ny,Nx]);
-    phi0=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[Ny,Nx]);
+    f0=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[Ny,Nx]);
+    phi0=reshape(importdata([dire0 'Qxx_' num2str(t) '.dat']),[Ny,Nx]);
     % phirhs0=reshape(importdata([dire0 'phi_rhs_3.dat']),[Ny,Nx]);
     f=f0(4:end-3,4:end-3);
     phi=phi0(4:end-3,4:end-3);

@@ -37,7 +37,7 @@ LaplaceNFEqField::LaplaceNFEqField (Mesh* mesh_ptr_t, string name_t, int priorit
     traits_host.boun_cond = "periodic";
     traits_host.init_cond = "sin";
     traits_host.expo_data = "on";
-    initFieldAddi ();    
+    initFieldAddi();
 };
 
 

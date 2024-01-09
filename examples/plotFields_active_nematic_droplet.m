@@ -25,10 +25,14 @@ for t=t0:dt:ts
     
     
     % figure;
-    if isfile([dire0 'phivx_' num2str(t) '.dat'])
+    if isfile([dire0 'phi_' num2str(t) '.dat'])
         clf;
-        vx=reshape(importdata([dire0 'incomFlow.vx_' num2str(t) '.dat']),[N,M])';
-        vy=reshape(importdata([dire0 'incomFlow.vx_' num2str(t) '.dat']),[N,M])';
+        vx=reshape(importdata([dire0 'incompFlow.vx_' num2str(t) '.dat']),[N,M])';
+        vy=reshape(importdata([dire0 'incompFlow.vy_' num2str(t) '.dat']),[N,M])';
+        omega=reshape(importdata([dire0 'incompFlow.omega_' num2str(t) '.dat']),[N,M])';
+        % vx=reshape(importdata([dire0 'Qxx_' num2str(t) '.dat']),[N,M])';
+        % vy=reshape(importdata([dire0 'Qxy_' num2str(t) '.dat']),[N,M])';
+        % omega=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
         Qxx=reshape(importdata([dire0 'Qxx_' num2str(t) '.dat']),[N,M])';
         Qxy=reshape(importdata([dire0 'Qxy_' num2str(t) '.dat']),[N,M])';
         phi=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
@@ -36,12 +40,13 @@ for t=t0:dt:ts
         
         vx=vx(4:N-3,4:N-3);
         vy=vy(4:N-3,4:N-3);
+        omega=omega(4:N-3,4:N-3);
         Qxx=Qxx(4:N-3,4:N-3);
         Qxy=Qxy(4:N-3,4:N-3);
         phi=phi(4:N-3,4:N-3);
         S2=S2(4:N-3,4:N-3);    
         S=2*sqrt(Qxx.^2+Qxy.^2);                       
-
+        
         % clf;
         if plotType==0        
             subplot(2,3,1)        
@@ -111,7 +116,7 @@ for t=t0:dt:ts
                    'ShowArrowHead','off','AutoScale','off');
             quiver(-S1.*cos(theta1),-S1.*sin(theta1),0.4,'Color','k', ...
                    'ShowArrowHead','off','AutoScale','off');
-            set(gca, 'YDir','normal')    
+            set(gca, 'YDir','normal')
             title(['\fontsize{32} Q, t=',num2str(t)]);
             axis off;
             axis square;

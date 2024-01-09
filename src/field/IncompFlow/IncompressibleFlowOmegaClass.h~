@@ -10,8 +10,8 @@
 using namespace std; 
 
 
-// =======================================================================
-class IncompressibleFlow {    
+// ===============================================================
+class IncompressibleFlow {
     
     public:
 
@@ -38,10 +38,10 @@ class IncompressibleFlow {
 
     cufftHandle cufftPlan;
     
-    // ===================================================================
+    // ===========================================================
     // Methods
     
-    // ===================================================================
+    // ===========================================================
     // Constructor
     IncompressibleFlow (Mesh* mesh_ptr_t, string name_t);
     IncompressibleFlow (Mesh* mesh_ptr_t, string name_t, int priority_t);
@@ -61,7 +61,7 @@ class IncompressibleFlow {
     void getVCoreCPU(double* phi, double* vx, double* vy, FFuncType d1x, FFuncType d1y, FFuncArgs f_func_args);
     
         
-    // ===================================================================
+    // ===========================================================
 };
 
 

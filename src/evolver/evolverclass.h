@@ -5,14 +5,13 @@
 #include <string>
 #include <time.h>
 #include "../system/systemclass.cpp"
-#include "../field/poissonEq-field/poissonEqFieldclass.cu"
 #include "../field/LaplaceNFEqField/LaplaceNFEqFieldClass.cu"
-#include "../field/incompressible-flow/incompressibleflowclass.cu"
+#include "../field/IncompFlow/IncompFlowClass.cu"
 #include "../field/constant-field/constantfieldclass.cu"
 
 using namespace std;
 
-//................Class .................................................
+//................Class .........................................
 
 class Evolver{
 

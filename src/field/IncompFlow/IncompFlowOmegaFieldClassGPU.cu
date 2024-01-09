@@ -1,15 +1,15 @@
-#ifndef INCOMPRESSIBLEFLOWCLASSGPU_CU
-#define INCOMPRESSIBLEFLOWCLASSGPU_CU
+#ifndef INCOMPFLOWOMEGAFIELDCLASSGPU_CU
+#define INCOMPFLOWOMEGAFIELDCLASSGPU_CU
 #include <iostream> 
 #include <vector>
 #include <string>
 #include <map>
-#include "incompressibleflowclass.h"
+#include "IncompFlowClass.h"
 
 using namespace std; 
 
-// ===================================================================
-__global__ void getStreamGPU(cufftDoubleComplex* phi_complex, double* phi, double* omega, double* poisson_k2, int Nx, int Ny, int Nbx, int Nby, int getType) {
+// ===============================================================
+__global__ void getIncompFlowStreamGPU(cufftDoubleComplex* phi_complex, double* phi, double* omega, double* poisson_k2, int Nx, int Ny, int Nbx, int Nby, int getType) {
     int i=blockIdx.x;
     int j=threadIdx.x;  
     int idx1=(blockDim.x+2*Nbx)*(i+Nby)+j+Nbx;
@@ -37,8 +37,8 @@ __global__ void getStreamGPU(cufftDoubleComplex* phi_complex, double* phi, doubl
     };
 }
 
-//=======================================================================
-__global__ void getVCoreGPU(double* phi, double* vx, double* vy, FFuncType d1x, FFuncType d1y, FFuncArgs f_func_args) {
+//================================================================
+__global__ void getIncompFlowVCoreGPU(double* phi, double* vx, double* vy, FFuncType d1x, FFuncType d1y, FFuncArgs f_func_args) {
     int i=blockIdx.x;
     int j=threadIdx.x;
     int idx=(blockDim.x+2*f_func_args.Nbx)*(i+f_func_args.Nby)+j+f_func_args.Nbx;
