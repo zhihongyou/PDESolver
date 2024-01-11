@@ -1,10 +1,10 @@
 
 dire0='data/';
 
-t0=0;
+t0=30;
 dt=1;
 ts=1000;
-M=128+6;
+M=128;
 N=M;
 dn=2;
 h=1;
@@ -38,13 +38,13 @@ for t=t0:dt:ts
         phi=reshape(importdata([dire0 'phi_' num2str(t) '.dat']),[N,M])';
         S2=reshape(importdata([dire0 'S2_' num2str(t) '.dat']),[N,M])';
         
-        vx=vx(4:N-3,4:N-3);
-        vy=vy(4:N-3,4:N-3);
-        omega=omega(4:N-3,4:N-3);
-        Qxx=Qxx(4:N-3,4:N-3);
-        Qxy=Qxy(4:N-3,4:N-3);
-        phi=phi(4:N-3,4:N-3);
-        S2=S2(4:N-3,4:N-3);    
+        % vx=vx(4:N-3,4:N-3);
+        % vy=vy(4:N-3,4:N-3);
+        % omega=omega(4:N-3,4:N-3);
+        % Qxx=Qxx(4:N-3,4:N-3);
+        % Qxy=Qxy(4:N-3,4:N-3);
+        % phi=phi(4:N-3,4:N-3);
+        % S2=S2(4:N-3,4:N-3);    
         S=2*sqrt(Qxx.^2+Qxy.^2);                       
         
         % clf;

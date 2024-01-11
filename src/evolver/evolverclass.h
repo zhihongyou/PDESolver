@@ -64,30 +64,27 @@ public:
     };
 
     
-    // ==================================================================
+    // ==========================================================
     // Methods
-    // void getRhsOneOperate (Field* f_t, rhs_operates operate_t);
-    // void getRHSs (Field* f_t, std::vector<rhs_operates> phi_rhs);
-    void initEvolver();
-    void initRHSs();
-    void initFields();
-    void addFunctoRHS(FFuncItem* f_funcs_rhs, FFuncDef f_func_i);
+    void run();    
     void getRHS(int i_field);
     void evalFieldFuncs(Field* f_ptr_t, int i_field);    
     void updateRHS(Field* f_ptr_t, int i_field);
     void updateRHSCoreCPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs_temp, int Nx, int Ny, int Nbx, int Nby);
     void fieldsUpdate(int i_f_new, int i_f_old, int i_df, double time_step_t);
     void fieldUpdateCPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t);
-    void fieldUpdateGPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t);    
-    void EulerForward();
-    void RK4();
-    void run();
+    void fieldUpdateGPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t);
     void showProgress();
-    
+    // Initializer
+    void initEvolver();
+    void initFields();
+    void initRHSs();    
+    void addFunctoRHS(FFuncItem* f_funcs_rhs, FFuncDef f_func_i);
+    // Integrator
+    void EulerForward();
+    void RK4();        
 };
 
-// =======================================================================
-// Other methods useful for evolver.
-
+// ==============================================================
 
 #endif

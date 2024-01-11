@@ -44,8 +44,8 @@ class IncompFlow {
 
     // Fields
     void initFields ();
-    void setFieldProperties (Field* field_ptr, string field_name, int priority_t);
-    void setFieldValues (string init_cond_t);
+    void setFieldProperties (Field* field_ptr, string field_name, int priority_t, string init_cond_t);
+    void setFieldValues ();
     void setVValues();
     void setOmegaValues ();
         

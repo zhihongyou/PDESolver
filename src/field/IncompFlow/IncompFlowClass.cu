@@ -62,15 +62,15 @@ IncompFlow::IncompFlow (Mesh* mesh_ptr_t, string name_t, int priority_t, string 
 
 // -------------------------------------------------------------
 void IncompFlow::initFields () {
-    setFieldProperties(&omega, name+".omega",priority);
+    setFieldProperties(&omega, name+".omega",priority, init_cond);
     if (priority == 0) {
-        setFieldProperties(&vx, name+".vx",-1);
-        setFieldProperties(&vy, name+".vy",-1);    
-        setFieldProperties(&phi, name+".phi",-1);
+        setFieldProperties(&vx, name+".vx",-1, init_cond);
+        setFieldProperties(&vy, name+".vy",-1, init_cond);    
+        setFieldProperties(&phi, name+".phi",-1, "sin");
     } else {
-        setFieldProperties(&vx, name+".vx",priority);
-        setFieldProperties(&vy, name+".vy",priority);
-        setFieldProperties(&phi, name+".phi",priority);
+        setFieldProperties(&vx, name+".vx",priority, init_cond);
+        setFieldProperties(&vy, name+".vy",priority, init_cond);
+        setFieldProperties(&phi, name+".phi",priority, "sin");
     };
     // This can trigger calculating stream function and velocity after
     //   a new omega has been obtained
@@ -88,17 +88,17 @@ void IncompFlow::initFields () {
     vy.allocField<double>(vy.f_host[0], "cpu");
     omega.allocField<double>(omega.f_host[0], "cpu");
     phi.allocField<double>(phi.f_host[0], "cpu");
-    setFieldValues(init_cond);
+    setFieldValues();
 };
 
 
 // -------------------------------------------------------------
-void IncompFlow::setFieldProperties (Field* field_ptr, string field_name, int priority_t) {
+void IncompFlow::setFieldProperties (Field* field_ptr, string field_name, int priority_t, string init_cond_t) {
     (*field_ptr).traits_host.mesh_ptr=mesh_ptr;
     (*field_ptr).traits_host.name=field_name;
     (*field_ptr).traits_host.priority=priority_t;
     (*field_ptr).traits_host.boun_cond = boun_cond;
-    (*field_ptr).traits_host.init_cond = init_cond;
+    (*field_ptr).traits_host.init_cond = init_cond_t;
     (*field_ptr).traits_host.expo_data = expo_data;
     (*field_ptr).num_f_funcs=0;
     for (int i=0; i<200; i++) {
@@ -108,7 +108,7 @@ void IncompFlow::setFieldProperties (Field* field_ptr, string field_name, int pr
 
 
 // -------------------------------------------------------------
-void IncompFlow::setFieldValues (string init_cond_t) {
+void IncompFlow::setFieldValues () {
     int Nx=vx.gridNumber().x;
     int Ny=vx.gridNumber().y;
     int Nbx=vx.gridNumberBoun().x;

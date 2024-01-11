@@ -6,11 +6,10 @@
 #include "evolverclass.h"
 #include "evolverclassGPU.cu"
 #include "evolverclass_integrator.cu"
+#include "evolverclass_initializer.cu"
 
 using namespace std;
 
-
-// =============================================================
 
 // ------------------------------------------------------------
 // Update system over time. This is the global control.
@@ -24,9 +23,9 @@ void Evolver::run() {
     // Export initial configuration.
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
         if ((*f_ptr_i).expoData() =="on") {
-            (*f_ptr_i).export_conf("0",device,1);
+            (*f_ptr_i).export_conf("init",device,0);
         };
-    };    
+    };
 
     // Running through time
     for (time_now=time_start; time_now<=time_stop+0.1*time_step; time_now+=time_step) {
@@ -45,7 +44,7 @@ void Evolver::run() {
             string str_t=to_string(te);
             for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
                 if ((*f_ptr_i).expoData() =="on") {
-                    (*f_ptr_i).export_conf(str_t,device,1);
+                    (*f_ptr_i).export_conf(str_t,device,0);
                 };        
             };
             // Show progress of simulation.
@@ -64,187 +63,12 @@ void Evolver::run() {
 
 
 // -------------------------------------------------------------
-void Evolver::initEvolver() {
-    // Initialize field function map used to identify functions to call
-    //   based on the operator name.
-    setFFuncMap();
-    
-    // Initialize fields
-    initFields();
-    
-    // Initialize 
-    initRHSs();
-};
-
-
-// -------------------------------------------------------------
-// Allocate memory for fields 
-// Location of memory depends on device of the evolver.
-void Evolver::initFields () {            
-
-    // Initiate fields and LHS&RHS
-    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
-        // Set numerical scheme for each field.
-        (*f_ptr_i).FDMScheme=FDMScheme;
-        
-        int num_grid=(*f_ptr_i).gridNumberAll();
-        if (device=="cpu") {            
-            for (int i_f_copy=0; i_f_copy<num_field_copy; i_f_copy++) {
-                (*f_ptr_i).f[i_f_copy]=new double[num_grid];
-                if ((*f_ptr_i).priority()==0) {
-                    (*f_ptr_i).rhs[i_f_copy]=new double[num_grid];
-                    (*f_ptr_i).lhs[i_f_copy]=new double[num_grid];
-                };
-            };
-            // Copy data from f_host to device
-            for (int idx=0; idx<num_grid; idx++) {
-                (*f_ptr_i).f[0][idx]=(*f_ptr_i).f_host[0][idx];
-            };
-            
-        } else if (device=="gpu") {
-            (*f_ptr_i).f_temp_host=new double[(*f_ptr_i).gridNumberAll()];
-            for (int i_f_copy=0; i_f_copy<num_field_copy; i_f_copy++) {
-                cudaMalloc(&(*f_ptr_i).f[i_f_copy], num_grid*sizeof(double));
-                if ((*f_ptr_i).priority()==0) {
-                    cudaMalloc(&(*f_ptr_i).rhs[i_f_copy], num_grid*sizeof(double));
-                    cudaMalloc(&(*f_ptr_i).lhs[i_f_copy], num_grid*sizeof(double));
-                };
-            };
-            cudaMemcpy((*f_ptr_i).f[0], (*f_ptr_i).f_host[0], num_grid*sizeof(double),cudaMemcpyHostToDevice);            
-        };
-    };
-    
-};
-
-
-// -------------------------------------------------------------
-void Evolver::initRHSs() {
-    
-    // Loop over fields to get all functions appearing in their RHS.
-    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
-        int num_grid=(*f_ptr_i).gridNumberAll();
-        // Number of terms appeared on this field's RHS
-        int num_terms=(*f_ptr_i).rhsTerms().size();
-        // Get total number of functions
-        int num_funcs=0;
-        for (auto rhs_term_i : (*f_ptr_i).rhsTerms()) {
-            num_funcs+=rhs_term_i.f_funcs.size();
-        };
-        // Number of [0] explicit and [1] implicit terms
-        (*f_ptr_i).rhs_ptrs_host.num_terms=new int[2];
-        (*f_ptr_i).rhs_ptrs_host.num_funcs_1term=new int[num_terms];
-        // Prefactors of each term
-        (*f_ptr_i).rhs_ptrs_host.prefactors=new double[num_terms];
-        // Numerical schemes used to calculate functions
-        (*f_ptr_i).rhs_ptrs_host.schemes=new int[num_funcs];
-        // Pointers to memory storing the function fields
-        (*f_ptr_i).rhs_ptrs_host.f_func_ptrs=new double * [num_funcs];
-        
-        
-        // Loop over terms on the RHS of each field.
-        int i_func=0;
-        int i_term=0;
-        int num_terms_expl=0;
-        
-        // Loop over all explicit terms to add functions
-        for (auto rhs_term_i : (*f_ptr_i).rhsTerms()) {
-            int i_func_1term=0;
-            if (rhs_term_i.scheme=="explicit") {
-                num_terms_expl+=1;
-                
-                // Loop over operators in each term
-                for (auto f_func_i : rhs_term_i.f_funcs) {
-                    // Add this term to function list of this field. Each function appears only once.                    
-                    // Check if function is already in the list                    
-                    int toAdd=1;
-                    for (int i=0; i<(*f_func_i.field_ptr).num_f_funcs; i++) {
-                        FFuncItem f_func_i1=(*f_func_i.field_ptr).f_funcs_rhs[i];
-
-                        // If this function is already in the list
-                        if (f_func_i.f_operator == f_func_i1.f_operator) {
-                            toAdd=0;
-                        };                        
-                    };
-                    if (toAdd==1) {                        
-                        (*f_func_i.field_ptr).addFunctoRHS(f_func_i,device,FDMScheme);
-                    };
-                    
-                    // Add field function pointer to rhs_ptrs_host.
-                    (*f_ptr_i).rhs_ptrs_host.f_func_ptrs[i_func]=(*f_func_i.field_ptr).getFFuncPtr(f_func_i.f_operator);
-
-                    i_func+=1;
-                    i_func_1term+=1;
-                };
-                (*f_ptr_i).rhs_ptrs_host.num_funcs_1term[i_term]=i_func_1term;
-                (*f_ptr_i).rhs_ptrs_host.prefactors[i_term]=rhs_term_i.prefactor;
-                i_term+=1;
-            };
-        };
-
-        int num_terms_impl=0;
-        for (auto rhs_term_i : (*f_ptr_i).rhsTerms()) {            
-            if (rhs_term_i.scheme=="semiImplicit") {
-                int i_func_1term=0;
-                num_terms_impl+=1;
-                // (*f_ptr_i).rhs_ptrs_host.schemes[i_term]=-1;                
-                // Evaluate each operator applied on field
-                for (auto f_func_i : rhs_term_i.f_funcs) {                    
-                
-                    // Add this term to function list of this field. Each function appears only once.                    
-                    int toAdd=1;
-                    // Check if function is already in the list
-                    for (int i=0; i<(*f_func_i.field_ptr).num_f_funcs; i++) {
-                        FFuncItem f_func_i1=(*f_func_i.field_ptr).f_funcs_rhs[i];
-                        if (f_func_i.f_operator == f_func_i1.f_operator) {
-                            toAdd=0;
-                        };
-                    };
-                    if (toAdd==1) {                            
-                        // (*f_ptr_i).f_funcs_rhs.push_back(f_func_i);
-                        (*f_func_i.field_ptr).addFunctoRHS(f_func_i,device,FDMScheme);
-                    };
-
-                    (*f_ptr_i).rhs_ptrs_host.f_func_ptrs[i_func]=(*f_func_i.field_ptr).getFFuncPtr(f_func_i.f_operator);
-
-                    i_func+=1;
-                    i_func_1term+=1;
-                };
-                (*f_ptr_i).rhs_ptrs_host.num_funcs_1term[i_term]=i_func_1term;
-                (*f_ptr_i).rhs_ptrs_host.prefactors[i_term]=rhs_term_i.prefactor;
-                i_term+=1;
-            };
-        };
-        
-        (*f_ptr_i).rhs_ptrs_host.num_terms[0]=num_terms_expl;
-        (*f_ptr_i).rhs_ptrs_host.num_terms[1]=num_terms_impl;
-
-        // Copy these values to device.
-        if (device=="gpu") {                        
-            cudaMalloc(&(*f_ptr_i).rhs_ptrs_dev.num_terms,2*sizeof(int));
-            cudaMalloc(&(*f_ptr_i).rhs_ptrs_dev.num_funcs_1term,num_terms*sizeof(int));
-            cudaMalloc(&(*f_ptr_i).rhs_ptrs_dev.schemes,num_terms*sizeof(int));
-            cudaMalloc(&(*f_ptr_i).rhs_ptrs_dev.prefactors,num_terms*sizeof(double));
-            cudaMalloc(&(*f_ptr_i).rhs_ptrs_dev.f_func_ptrs,num_funcs*sizeof(double*));
-            cudaMalloc(&(*f_ptr_i).f_funcs_dev,200*sizeof(double*));
-            cudaMemcpy((*f_ptr_i).rhs_ptrs_dev.num_terms, (*f_ptr_i).rhs_ptrs_host.num_terms, 2*sizeof(int),cudaMemcpyHostToDevice);
-            cudaMemcpy((*f_ptr_i).rhs_ptrs_dev.num_funcs_1term, (*f_ptr_i).rhs_ptrs_host.num_funcs_1term, num_terms*sizeof(int),cudaMemcpyHostToDevice);
-            cudaMemcpy((*f_ptr_i).rhs_ptrs_dev.schemes, (*f_ptr_i).rhs_ptrs_host.schemes, num_terms*sizeof(int),cudaMemcpyHostToDevice);
-            cudaMemcpy((*f_ptr_i).rhs_ptrs_dev.prefactors, (*f_ptr_i).rhs_ptrs_host.prefactors, num_terms*sizeof(double),cudaMemcpyHostToDevice);
-            cudaMemcpy((*f_ptr_i).rhs_ptrs_dev.f_func_ptrs, (*f_ptr_i).rhs_ptrs_host.f_func_ptrs, num_funcs*sizeof(double*),cudaMemcpyHostToDevice);
-            cudaMemcpy((*f_ptr_i).f_funcs_dev, (*f_ptr_i).f_funcs_host, 200*sizeof(double*),cudaMemcpyHostToDevice);
-        };
-
-    };    
-};
-
-
-// -------------------------------------------------------------
 void Evolver::getRHS(int i_field) {
 
     // Evaluate field functions for priority<=0
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
         if ((*f_ptr_i).priority()<=0) {
-            evalFieldFuncs(f_ptr_i,i_field);            
+            evalFieldFuncs(f_ptr_i,i_field);
         };
     };    
 
@@ -281,12 +105,6 @@ void Evolver::getRHS(int i_field) {
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
         if ((*f_ptr_i).priority()==0) {
             updateRHS(f_ptr_i,i_field);
-            // DO NOT need this.
-            // Whenever omega is updated, get new velocity.
-            // if ((*f_ptr_i).specialty=="IncompFlowOmega") {
-            //     IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
-            //     (*f_ptr_temp).getVelocity(i_field);
-            // };
         };
     };
 
@@ -299,7 +117,7 @@ void Evolver::evalFieldFuncs(Field* f_ptr_i, int i_field) {
     for (int i=0; i<(*f_ptr_i).num_f_funcs; i++) {
         FFuncItem f_func_i=(*f_ptr_i).f_funcs_rhs[i];
         
-        if (device=="cpu") {            
+        if (device=="cpu") {
             (*f_ptr_i).getFFuncCPU((*f_ptr_i).f_funcs_host[f_func_i.f_func_idx], i_field, f_func_i.f_func, f_func_i.f_func_args, "new");            
         } else if (device=="gpu") {
             (*f_ptr_i).getFFuncGPU((*f_ptr_i).f_funcs_host[f_func_i.f_func_idx], i_field, f_func_i.f_func, f_func_i.f_func_args, "new");
@@ -377,6 +195,59 @@ void Evolver::updateRHSCoreCPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs_t
 };
 
 
+// --------------------------------------------------------------
+void Evolver::fieldsUpdate(int i_f_new, int i_f_old, int i_df, double time_step_t) {
+    // Update fields with priority=0
+    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
+        if ((*f_ptr_i).priority() ==0) {
+            if (device=="cpu") {            
+                fieldUpdateCPU(f_ptr_i,i_f_new,i_f_old,i_df,time_step_t);
+                if ((*f_ptr_i).bounCond()=="periodic") {
+                    (*f_ptr_i).applyBounCondPeriCPU((*f_ptr_i).f[i_f_new]);
+                };
+            } else if (device=="gpu") {
+                fieldUpdateGPU(f_ptr_i,i_f_new,i_f_old,i_df,time_step_t);
+                if ((*f_ptr_i).bounCond()=="periodic") {
+                    (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_f_new]);
+                };
+            };
+            // Get velocity
+            if ((*f_ptr_i).specialty=="IncompFlowOmega") {
+                IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
+                (*f_ptr_temp).getVelocity(i_f_new);
+            };
+        };        
+    };
+};
+
+
+// --------------------------------------------------------------
+void Evolver::fieldUpdateCPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t) {
+    int Nx=(*f_ptr_t).gridNumber().x;
+    int Ny=(*f_ptr_t).gridNumber().y;
+    int Nbx=(*f_ptr_t).gridNumberBoun().x;
+    int Nby=(*f_ptr_t).gridNumberBoun().y;
+    
+    for (int j=0; j<Ny;j++) {
+        for (int i=0; i<Nx; i++) {        
+            int idx=(j+Nby)*(Nx+2*Nbx)+i+Nbx;
+            (*f_ptr_t).f[i_f_new][idx]=((*f_ptr_t).f[i_f_old][idx]+(*f_ptr_t).rhs[i_df][idx]*time_step_t)/(1+(*f_ptr_t).lhs[i_df][idx]*time_step_t);
+        };
+    };
+};
+
+
+// --------------------------------------------------------------
+void Evolver::fieldUpdateGPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t) {
+    
+    int Nx=(*f_ptr_t).gridNumber().x;
+    int Ny=(*f_ptr_t).gridNumber().y;
+    int Nbx=(*f_ptr_t).gridNumberBoun().x;
+    int Nby=(*f_ptr_t).gridNumberBoun().y;
+    fieldUpdateGPUCore<<<Ny,Nx>>>((*f_ptr_t).f[i_f_new], (*f_ptr_t).f[i_f_old], (*f_ptr_t).rhs[i_df], (*f_ptr_t).lhs[i_df], time_step_t, Nx, Ny, Nbx, Nby);
+};
+
+
 // -------------------------------------------------------------
 void Evolver::showProgress() {
   // Print progress.
@@ -404,6 +275,6 @@ void Evolver::showProgress() {
 }
 
 
-// ======================================================================
+// ==============================================================
 
 #endif

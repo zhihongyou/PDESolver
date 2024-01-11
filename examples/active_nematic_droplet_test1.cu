@@ -27,7 +27,8 @@ int main() {
     string device="gpu";
     string FDMScheme="CentralDifferenceO4Iso2D";
     string timeScheme="RK4";
-    double t0=27;
+    string initcond="sin";
+    double t0=0;
     double T=1000;
     double dt=0.001;
     double dtExpo=1;
@@ -64,10 +65,10 @@ int main() {
     // Creating fields.
     Field S2(&mesh, "S2",1);
     Field mu(&mesh, "mu",1);
-    Field Qxx(&mesh, "Qxx",0,"import");
-    Field Qxy(&mesh, "Qxy",0,"import","periodic","on");    
-    Field phi(&mesh, "phi",0,"import","periodic","on");
-    IncompFlow incompFlow(&mesh, "incompFlow",0,"import");
+    Field Qxx(&mesh, "Qxx",0,initcond);
+    Field Qxy(&mesh, "Qxy",0,initcond,"periodic","on");    
+    Field phi(&mesh, "phi",0,initcond,"periodic","on");
+    IncompFlow incompFlow(&mesh, "incompFlow",0,initcond);
     
     S2.setRhsTerms({
         {4,{{&Qxx},{&Qxx}}},
@@ -131,7 +132,7 @@ int main() {
     mySys.addField(&phi);
     mySys.addIncompFlow(&incompFlow);
     // phi.initFieldConst(phi0);
-    phi.initFieldGaus(L/2, 0.1*L, 1.5);
+    // phi.initFieldGaus(L/2, 0.1*L, 1.5);
     
     // Print system information.
     mySys.printSysInfo();

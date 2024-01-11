@@ -130,6 +130,7 @@ class Field {
     // Random field with normal distribution
     void initFieldRandNorm(double f_mean, double f_var);
     // Gaussian profile in space f(r)=gaus_amplitude*exp(-(r-r_center)^2/r_decay^2).
+    void initFieldImport(string s_label, int include_boun);
     void initFieldGaus(double r_center, double r_decay, double gaus_amplitude);
     void initFieldSin(double sin_amplitude, int sin_period, double sin_phase);
     void setFieldConstCPU(double* f_t, double f_val, int Nx, int Ny, int Nbx, int Nby);

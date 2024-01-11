@@ -18,7 +18,46 @@ int seed = time(0);
 default_random_engine rng(seed);
 
 
-// -----------------------------------------------------------------------
+// --------------------------------------------------------------
+void Field::initFieldImport(string str_t="0", int include_boun=0) {            
+    int idx;
+    int Nx=gridNumber().x;
+    int Ny=gridNumber().y;
+    int Nbx=gridNumberBoun().x;
+    int Nby=gridNumberBoun().y;
+    int* idx0=new int [4];
+        
+    if (include_boun==0) {
+        idx0[0]=0;
+        idx0[1]=0;
+        idx0[2]=0;
+        idx0[3]=0;
+    } else {
+        idx0[0]=-Nbx;
+        idx0[1]=Nbx;
+        idx0[2]=-Nby;
+        idx0[3]=Nby;
+    };
+    string conf_file_name=dire_expo()+name()+"_"+ str_t + ".dat";
+    FILE * conf_file;
+    conf_file = fopen(const_cast<char*>(conf_file_name.c_str()), "r");
+    if (conf_file == NULL ) {
+        cout << "Unable to open file " <<conf_file_name <<endl;
+        exit(1);
+    };
+
+    for (int j=idx0[2]; j<Ny+idx0[3]; j++) {
+        for (int i=idx0[0]; i<Nx+idx0[1]; i++) {
+            idx=(Nx+2*Nbx)*(j+Nby)+i+Nbx;
+            fscanf(conf_file, "%lf", &f_host[0][idx]);            
+        }
+    }
+    fclose(conf_file);
+    applyBounCondPeriCPU(f_host[0]);
+};
+
+
+// --------------------------------------------------------------
 void Field::initFieldConst(double f_value) {    
     int Nx=gridNumber().x;
     int Ny=gridNumber().y;
@@ -34,7 +73,7 @@ void Field::initFieldConst(double f_value) {
     applyBounCondPeriCPU(f_host[0]);
 };
 
-// -----------------------------------------------------------------------
+// --------------------------------------------------------------
 void Field::initFieldGaus(double r_center, double r_decay, double gaus_amplitude) {
     int Nx=gridNumber().x;
     int Ny=gridNumber().y;
