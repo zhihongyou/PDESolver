@@ -21,10 +21,9 @@ class LaplaceNFEqField :public Field {
 public:    
        
     cufftDoubleComplex* phi_complex;
-    double** k2s_host=new double*[10];
-    double** k2s_dev=new double*[10];
-    double* prefactors=new double[10];
-    int max_power=1;
+    double* k2n_host;
+    double* k2n_dev;
+    int n_laplace=1;
     cufftHandle cufftPlan;
     
     // ===========================================================
@@ -40,7 +39,7 @@ public:
     void solveLaplaceNFEq (int i_field);
     void getRHSAddi (int i_field);
     void setNLaplace (int n_laplace_t);
-    void setk2s ();
+    void setk2n ();
     // ===========================================================
 };
 

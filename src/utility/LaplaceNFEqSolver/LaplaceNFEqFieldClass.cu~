@@ -150,13 +150,10 @@ void LaplaceNFEqField::setk2s() {
 };
 
 //===============================================================
-void LaplaceNFEqField::setSolver (int max_power_t, double* prefactors_t) {
-    max_power=max_power_t;
-    for (i=0; i<=max_power; i++) {
-      prefactors[i]=prefactors_t[i];
-    }
+void LaplaceNFEqField::setNLaplace (int n_laplace_t) {
+    n_laplace=n_laplace_t;
     setk2s();
-    cout << "LaplaceNFEqField Solver has been reset!" <<endl;
+    cout << "n_laplace is set to: " <<n_laplace <<"."<<endl;
 };
 
 // ==============================================================

@@ -1,17 +1,17 @@
-#ifndef LAPLACENFEQFIELDCLASS_H
-#define LAPLACENFEQFIELDCLASS_H
+#ifndef LAPLACENFEQSOLVERCLASS_H
+#define LAPLACENFEQSOLVERCLASS_H
 #include <iostream> 
 #include <vector>
 #include <string>
 #include <map>
-#include "../fieldclass.cu"
+#include "../../mesh/meshclass.cpp"
 
 
 using namespace std; 
 
 
 // ===============================================================
-class LaplaceNFEqField :public Field {
+class LaplaceNFEqSolver {
     // This class is used to characterize a filed governed by the
     //   Poisson-like equation (\nabla^2)^n_laplace \phi = f,
     //   where f is specified by the RHS of field \phi.
@@ -19,7 +19,10 @@ class LaplaceNFEqField :public Field {
     //   and n_laplace=2 gives the bi-harmonic equation.
     
 public:    
-       
+
+    Mesh* mesh_ptr;
+    string name;
+    
     cufftDoubleComplex* phi_complex;
     double** k2s_host=new double*[10];
     double** k2s_dev=new double*[10];
@@ -29,13 +32,9 @@ public:
     
     // ===========================================================
     // Constructor
-    LaplaceNFEqField (Mesh* mesh_ptr_t, string name_t);
-    LaplaceNFEqField (Mesh* mesh_ptr_t, string name_t, int priority_t);
-    LaplaceNFEqField (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t);
-    LaplaceNFEqField (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t, string boun_cond_t, string expo_data_t);
+    LaplaceNFEqSolver (Mesh* mesh_ptr_t, string name_t);
     
     // Methods
-    void initFieldAddi ();
     void initLaplaceNFSolver();    
     void solveLaplaceNFEq (int i_field);
     void getRHSAddi (int i_field);

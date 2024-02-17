@@ -93,11 +93,11 @@ void LaplaceNFEqField::solveLaplaceNFEq (int i_field) {
     double dx=gridSize().x;
     double dy=gridSize().y;
     
-    solveLaplaceNFEqCoreGPU<<<Ny,Nx>>>(phi_complex, f[i_field], f[i_field], k2s_dev, Nx, Ny, Nbx, Nby, 0);
+    solveLaplaceNFEqCoreGPU<<<Ny,Nx>>>(phi_complex, f[i_field], f[i_field], k2n_dev, Nx, Ny, Nbx, Nby, 0);
     cufftExecZ2Z(cufftPlan,phi_complex,phi_complex,CUFFT_FORWARD);
-    solveLaplaceNFEqCoreGPU<<<Ny,Nx>>>(phi_complex, f[i_field], rhs[i_field], k2s_dev, Nx, Ny, Nbx, Nby, 1);
+    solveLaplaceNFEqCoreGPU<<<Ny,Nx>>>(phi_complex, f[i_field], rhs[i_field], k2n_dev, Nx, Ny, Nbx, Nby, 1);
     cufftExecZ2Z(cufftPlan,phi_complex,phi_complex,CUFFT_INVERSE);
-    solveLaplaceNFEqCoreGPU<<<Ny,Nx>>>(phi_complex, f[i_field], f[i_field], k2s_dev, Nx, Ny, Nbx, Nby, 2);
+    solveLaplaceNFEqCoreGPU<<<Ny,Nx>>>(phi_complex, f[i_field], f[i_field], k2n_dev, Nx, Ny, Nbx, Nby, 2);
     applyBounCondPeriGPU(f[i_field]);    
 };
 
@@ -109,15 +109,15 @@ void LaplaceNFEqField::initLaplaceNFSolver() {
     int Ny=gridNumber().y;
     double dx=gridSize().x;
     double dy=gridSize().y;
-    k2s_host=new real[Nx*Ny];
-    cudaMalloc((void **)&k2s_dev, (Nx*Ny)*sizeof(double));
+    k2n_host=new real[Nx*Ny];
+    cudaMalloc((void **)&k2n_dev, (Nx*Ny)*sizeof(double));
     cudaMalloc((void **)&phi_complex, sizeof(cufftDoubleComplex)*Nx*Ny);
-    setk2s();    
+    setk2n();    
     cufftPlan2d(&cufftPlan, Ny, Nx, CUFFT_Z2Z);
 }
 
 //==============================================================
-void LaplaceNFEqField::setk2s() {
+void LaplaceNFEqField::setk2n() {
     double kx,ky;
     int Nx=gridNumber().x;
     int Ny=gridNumber().y;
@@ -135,28 +135,18 @@ void LaplaceNFEqField::setk2s() {
                 kx=2*Pi*(j-Nx)/(Nx*dx+0.0);
             }
             int idx=i*Nx+j;
-	    k2s_host[idx]=prefactors[0];
-	    for (int k=1; k<=max_power; k++) {
-	      k2s_host[idx]=k2s_host[idx]+pow(-kx*kx-ky*ky, k);
-	    }
+            k2n_host[idx]=pow(-kx*kx-ky*ky, n_laplace);
         }
     }
-    if (abs(prefactors[0])<0.0000000000000001) {
-      k2s_host[0]=1;
-    } else {
-      k2s_host[0]=prefactors[0];
-    };
-    cudaMemcpy(k2s_dev,k2s_host,sizeof(double)*Nx*Ny,cudaMemcpyHostToDevice);
+    k2n_host[0]=1;
+    cudaMemcpy(k2n_dev,k2n_host,sizeof(double)*Nx*Ny,cudaMemcpyHostToDevice);
 };
 
 //===============================================================
-void LaplaceNFEqField::setSolver (int max_power_t, double* prefactors_t) {
-    max_power=max_power_t;
-    for (i=0; i<=max_power; i++) {
-      prefactors[i]=prefactors_t[i];
-    }
-    setk2s();
-    cout << "LaplaceNFEqField Solver has been reset!" <<endl;
+void LaplaceNFEqField::setNLaplace (int n_laplace_t) {
+    n_laplace=n_laplace_t;
+    setk2n();
+    cout << "n_laplace is set to: " <<n_laplace <<"."<<endl;
 };
 
 // ==============================================================

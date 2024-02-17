@@ -1,5 +1,5 @@
-#ifndef INCOMPFLOWOMEGAFIELDCLASS_CU
-#define INCOMPFLOWOMEGAFIELDCLASS_CU
+#ifndef INCOMPFLOWOMEGASTOKESFRICFIELDCLASS_CU
+#define INCOMPFLOWOMEGASTOKESFRICFIELDCLASS_CU
 
 #include <iostream> 
 #include <vector>
@@ -7,7 +7,7 @@
 #include <map>
 #include <cufft.h>
 #include <cufftXt.h>
-#include "IncompFlowOmegaFieldClass.h"
+#include "IncompFlowOmegaStokesFricFieldClass.h"
 #include "IncompFlowOmegaFieldClassGPU.cu"
 
 
@@ -15,7 +15,7 @@ using namespace std;
 
 // =============================================================
 // Constructors
-IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t) {
+IncompFlowOmegaStokesFricField::IncompFlowOmegaStokesFricField (Mesh* mesh_ptr_t, string name_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
     traits_host.name=name_t;
     traits_host.priority=0;
@@ -28,7 +28,7 @@ IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t) {
 
 
 // -------------------------------------------------------------
-IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t, int priority_t) {
+IncompFlowOmegaStokesFricField::IncompFlowOmegaStokesFricField (Mesh* mesh_ptr_t, string name_t, int priority_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
     traits_host.name=name_t;
     traits_host.priority=priority_t;
@@ -40,7 +40,7 @@ IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t, int
 
 
 // -------------------------------------------------------------
-IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t) {
+IncompFlowOmegaStokesFricField::IncompFlowOmegaStokesFricField (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
     traits_host.name=name_t;
     traits_host.priority=priority_t;
@@ -51,7 +51,7 @@ IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t, int
 };
 
 // -------------------------------------------------------------
-IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t, string boun_cond_t, string expo_data_t) {
+IncompFlowOmegaStokesFricField::IncompFlowOmegaStokesFricField (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t, string boun_cond_t, string expo_data_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
     traits_host.name=name_t;
     traits_host.priority=priority_t;
@@ -62,15 +62,7 @@ IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t, int
 };
 
 // -------------------------------------------------------------
-IncompFlowOmegaField::initFieldAddi () {
-    // Empty constructor requires specifying mesh before initialization.
-    LaplSolverW2Phi.mesh_ptr=traits_host.mesh_ptr;
-    // Initiate a Poisson solver
-    LaplSolverW2Phi.initLaplaceNFSolver();
-};
-
-// -------------------------------------------------------------
-void IncompFlowOmegaField::getVelocity(int i_field) {
+void IncompFlowOmegaStokesFricField::getVelocity(int i_field) {
     int Nx=gridNumber().x;
     int Ny=gridNumber().y;
     int Nbx=gridNumberBoun().x;
@@ -78,7 +70,11 @@ void IncompFlowOmegaField::getVelocity(int i_field) {
     double dx=gridSize().x;
     double dy=gridSize().y;
 
-    LaplSolverW2Phi.solveLaplaceNFEq(double* phi, double* f);
+    getIncompFlowStreamGPU<<<Ny,Nx>>>(phi_complex, (*ptr_phi).f[i_field], f[i_field], poisson_k2_dev, Nx, Ny, Nbx, Nby, 0);
+    cufftExecZ2Z(cufftPlan,phi_complex,phi_complex,CUFFT_FORWARD);
+    getIncompFlowStreamGPU<<<Ny,Nx>>> (phi_complex, (*ptr_phi).f[i_field], f[i_field], poisson_k2_dev, Nx, Ny, Nbx, Nby, 1);
+    cufftExecZ2Z(cufftPlan,phi_complex,phi_complex,CUFFT_INVERSE);
+    getIncompFlowStreamGPU<<<Ny,Nx>>> (phi_complex, (*ptr_phi).f[i_field], f[i_field], poisson_k2_dev, Nx, Ny, Nbx, Nby, 2);
     (*ptr_phi).applyBounCondPeriGPU((*ptr_phi).f[i_field]);
 
     FFuncType d1x=f_func_map_all_dev[{"d1x","CentralDifferenceO4Iso2D"}];
@@ -91,7 +87,7 @@ void IncompFlowOmegaField::getVelocity(int i_field) {
 
 
 //===============================================================
-void IncompFlowOmegaField::getIncompFlowVCoreCPU(int i_field, FFuncType d1x, FFuncType d1y, FFuncArgs f_func_args) {
+void IncompFlowOmegaStokesFricField::getIncompFlowVCoreCPU(int i_field, FFuncType d1x, FFuncType d1y, FFuncArgs f_func_args) {
     
     int Nx=f_func_args.Nx;
     int Ny=f_func_args.Ny;
@@ -108,6 +104,38 @@ void IncompFlowOmegaField::getIncompFlowVCoreCPU(int i_field, FFuncType d1x, FFu
             vy[idx]=-d1x(phi,idx,f_func_args);
         };
     };
+}
+
+
+//==============================================================
+void IncompFlowOmegaStokesFricField::initPoissonSolver() {
+  // Creating wavenumber array
+    double kx,ky;
+    int Nx=gridNumber().x;
+    int Ny=gridNumber().y;
+    double dx=gridSize().x;
+    double dy=gridSize().y;
+    poisson_k2_host=new real[Nx*Ny];
+    cudaMalloc((void **)&poisson_k2_dev, (Nx*Ny)*sizeof(double));
+    cudaMalloc((void **)&phi_complex, sizeof(cufftDoubleComplex)*Nx*Ny);
+    
+    for (int i=0; i<Ny; i++){
+        ky = 2*Pi*i/(Ny*dy+0.0);
+        if (i>=Ny/2) {
+            ky=2*Pi*(i-Ny)/(Ny*dy+0.0);
+        }
+        for (int j=0; j<Nx; j++){
+            kx=2*Pi*j/(Nx*dx+0.0);
+            if (j>=Nx/2) {
+                kx=2*Pi*(j-Nx)/(Nx*dx+0.0);
+            }
+            int idx=i*Nx+j;
+            poisson_k2_host[idx]=kx*kx+ky*ky;
+        }
+    }
+    poisson_k2_host[0]=1;
+    cudaMemcpy(poisson_k2_dev,poisson_k2_host,sizeof(double)*Nx*Ny,cudaMemcpyHostToDevice);  
+    cufftPlan2d(&cufftPlan, Ny, Nx, CUFFT_Z2Z);
 }
 
 

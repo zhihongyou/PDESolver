@@ -62,14 +62,6 @@ IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t, int
 };
 
 // -------------------------------------------------------------
-IncompFlowOmegaField::initFieldAddi () {
-    // Empty constructor requires specifying mesh before initialization.
-    LaplSolverW2Phi.mesh_ptr=traits_host.mesh_ptr;
-    // Initiate a Poisson solver
-    LaplSolverW2Phi.initLaplaceNFSolver();
-};
-
-// -------------------------------------------------------------
 void IncompFlowOmegaField::getVelocity(int i_field) {
     int Nx=gridNumber().x;
     int Ny=gridNumber().y;
@@ -78,7 +70,11 @@ void IncompFlowOmegaField::getVelocity(int i_field) {
     double dx=gridSize().x;
     double dy=gridSize().y;
 
-    LaplSolverW2Phi.solveLaplaceNFEq(double* phi, double* f);
+    getIncompFlowStreamGPU<<<Ny,Nx>>>(phi_complex, (*ptr_phi).f[i_field], f[i_field], poisson_k2_dev, Nx, Ny, Nbx, Nby, 0);
+    cufftExecZ2Z(cufftPlan,phi_complex,phi_complex,CUFFT_FORWARD);
+    getIncompFlowStreamGPU<<<Ny,Nx>>> (phi_complex, (*ptr_phi).f[i_field], f[i_field], poisson_k2_dev, Nx, Ny, Nbx, Nby, 1);
+    cufftExecZ2Z(cufftPlan,phi_complex,phi_complex,CUFFT_INVERSE);
+    getIncompFlowStreamGPU<<<Ny,Nx>>> (phi_complex, (*ptr_phi).f[i_field], f[i_field], poisson_k2_dev, Nx, Ny, Nbx, Nby, 2);
     (*ptr_phi).applyBounCondPeriGPU((*ptr_phi).f[i_field]);
 
     FFuncType d1x=f_func_map_all_dev[{"d1x","CentralDifferenceO4Iso2D"}];
