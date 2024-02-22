@@ -18,12 +18,16 @@ using namespace std;
 // Constructors
 LaplaceNFEqSolver::LaplaceNFEqSolver () { };
 
+
+// ------------------------------------------------------------
 LaplaceNFEqSolver::LaplaceNFEqSolver (Mesh* mesh_ptr_t) {
     mesh_ptr=mesh_ptr_t;
     initLaplaceNFSolver();
     cout << "Initiating a LaplaceNFEqSolver: " << name <<"."<<endl;
 };
 
+
+// ------------------------------------------------------------
 LaplaceNFEqSolver::LaplaceNFEqSolver (Mesh* mesh_ptr_t, string name_t) {
     mesh_ptr=mesh_ptr_t;
     name=name_t;

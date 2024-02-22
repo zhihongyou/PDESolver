@@ -26,7 +26,7 @@ class IncompFlow {
     string equation = "";
     Mesh* mesh_ptr=NULL;
     string FDMScheme;
-
+    
     IncompFlowOmegaField omega;    // omega=2*vorticity
     Field vx;
     Field vy;    
@@ -44,6 +44,7 @@ class IncompFlow {
 
     // Fields
     void initFields ();
+
     void setFieldProperties (Field* field_ptr, string field_name, int priority_t, string init_cond_t);
     void setFieldValues ();
     void setVValues();
