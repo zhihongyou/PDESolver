@@ -78,7 +78,7 @@ void IncompFlow::initFields () {
     omega.ptr_vx=&vx;
     omega.ptr_vy=&vy;
     omega.ptr_phi=&phi;
-    omega.initPoissonSolver();
+    omega.setOmegaField(mesh_ptr, 1);
     // No RHS for vx, vy, phi, as they need special functions to get values
     vx.setRhsTerms({});
     vy.setRhsTerms({});

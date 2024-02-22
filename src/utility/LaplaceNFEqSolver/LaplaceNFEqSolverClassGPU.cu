@@ -1,12 +1,12 @@
-#ifndef LAPLACENFEQFIELDCLASSGPU_CU
-#define LAPLACENFEQFIELDCLASSGPU_CU
+#ifndef LAPLACENFEQSOLVERCLASSGPU_CU
+#define LAPLACENFEQSOLVERCLASSGPU_CU
 #include <iostream> 
 #include <vector>
 #include <string>
 #include <map>
-#include "LaplaceNFEqFieldClass.h"
+// #include "LaplaceNFEqFieldClass.h"
 
-using namespace std; 
+using namespace std;
 
 // ===============================================================
 __global__ void solveLaplaceNFEqCoreGPU(cufftDoubleComplex* phi_complex, double* phi, double* f, double* k2s, int Nx, int Ny, int Nbx, int Nby, int getType) {

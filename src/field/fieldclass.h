@@ -6,6 +6,7 @@
 #include <map>
 #include "../mesh/meshclass.cpp"
 #include "fieldFunction.cu"
+#include "../utility/LaplaceNFEqSolver/LaplaceNFEqSolverClass.cu"
 
 
 using namespace std; 

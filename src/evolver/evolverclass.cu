@@ -74,7 +74,7 @@ void Evolver::getRHS(int i_field) {
 
     // Get new field values for those with priority>0
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
-        if ((*f_ptr_i).priority()>0) {            
+        if ((*f_ptr_i).priority()>0) {
             updateRHS(f_ptr_i,i_field);
             if ((*f_ptr_i).specialty=="LaplaceNFEqField") {
                 LaplaceNFEqField* f_ptr_temp = (LaplaceNFEqField*) f_ptr_i;
@@ -213,8 +213,8 @@ void Evolver::fieldsUpdate(int i_f_new, int i_f_old, int i_df, double time_step_
             };
             // Get velocity
             if ((*f_ptr_i).specialty=="IncompFlowOmega") {
-                IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
-                (*f_ptr_temp).getVelocity(i_f_new);
+                // IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
+                // (*f_ptr_temp).getVelocity(i_f_new);
             };
         };        
     };

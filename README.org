@@ -129,7 +129,13 @@
 *** More specific subclasses
     There could be more specific subclasses. For example, RK4 could have different coefficients that fit for different problems.
 ** Utility Class: other useful functions
-*** Vector3     
+*** Vector3
+    A class used to combine three numbers into a 3d vector. The number can have an arbitrary type, including int, float, double, etc.
+
+    Constructor: Vector3(T x0, T y0, T z0).
+
+    Methods: norm(), d_square(), angle_with(Vector3), dot_with(Vector3).
+*** LaplaceNFEqSolver
 *** Memory
 *** cpuTools
 *** gpuTools

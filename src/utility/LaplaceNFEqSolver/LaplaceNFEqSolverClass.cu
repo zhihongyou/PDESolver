@@ -8,7 +8,6 @@
 #include <cufft.h>
 #include <cufftXt.h>
 #include "LaplaceNFEqSolverClass.h"
-#include "LaplaceNFEqSolverClassGPU.cu"
 
 
 using namespace std;
@@ -16,53 +15,47 @@ using namespace std;
 
 // =============================================================
 // Constructors
-LaplaceNFEqSolver::LaplaceNFEqSolver () { };
+LaplaceNFEqSolver::LaplaceNFEqSolver () {};
 
 
 // ------------------------------------------------------------
 LaplaceNFEqSolver::LaplaceNFEqSolver (Mesh* mesh_ptr_t) {
-    mesh_ptr=mesh_ptr_t;
-    initLaplaceNFSolver();
-    cout << "Initiating a LaplaceNFEqSolver: " << name <<"."<<endl;
+    // cout <<"haha"<<endl;
+    initLaplaceNFEqSolver(mesh_ptr_t);
+    // cout <<"haha"<<endl;
 };
 
 
 // ------------------------------------------------------------
 LaplaceNFEqSolver::LaplaceNFEqSolver (Mesh* mesh_ptr_t, string name_t) {
-    mesh_ptr=mesh_ptr_t;
     name=name_t;
-    initLaplaceNFSolver();
-    cout << "Initiating a LaplaceNFEqSolver: " << name <<"."<<endl;
+    initLaplaceNFEqSolver(mesh_ptr_t);
 };
 
 
 //===============================================================
-void LaplaceNFEqSolver::initLaplaceNFSolver() {
-  // Creating wavenumber array
-    int Nx=(*mesh_ptr).host.grid_number.x;
-    int Ny=(*mesh_ptr).host.grid_number.y;
-    double dx=(*mesh_ptr).host.grid_size.x;
-    double dy=(*mesh_ptr).host.grid_size.y;
-    k2s_host=new real[Nx*Ny];
-    cudaMalloc((void **)&k2s_dev, (Nx*Ny)*sizeof(double));
-    cudaMalloc((void **)&phi_complex, sizeof(cufftDoubleComplex)*Nx*Ny);
-    cufftPlan2d(&cufftPlan, Ny, Nx, CUFFT_Z2Z);
-    // This solver is by default a Poisson solver    
-    max_power=1;
-    prefactors={0,1,0,0,0,0,0,0,0,0};
-    setk2s();    
+void LaplaceNFEqSolver::initLaplaceNFEqSolver(Mesh* mesh_ptr_t) {
+    int Nx=(*mesh_ptr_t).host.grid_number.x;    
+    int Ny=(*mesh_ptr_t).host.grid_number.y;
+    if (k2s_host==NULL) {
+        k2s_host=new double[Nx*Ny];
+        cudaMalloc((void **)&k2s_dev, (Nx*Ny)*sizeof(double));
+        cudaMalloc((void **)&phi_complex, sizeof(cufftDoubleComplex)*Nx*Ny);
+        cufftPlan2d(&cufftPlan, Ny, Nx, CUFFT_Z2Z);
+    }
+    mesh_ptr=mesh_ptr_t;
+    double prefactors_t[2]={0, 1};
+    setLaplaceNFEqSolver(1, prefactors_t);
 }
 
 
-//===============================================================
-void LaplaceNFEqSolver::setSolver (int max_power_t, double* prefactors_t) {
-    // This is used to reset the solver with non-default settings.
+// ============================================================
+void LaplaceNFEqSolver::setLaplaceNFEqSolver(int max_power_t, double* prefactors_t) {
     max_power=max_power_t;
-    for (i=0; i<=max_power; i++) {
-      prefactors[i]=prefactors_t[i];
+    for (int i=0; i<=max_power; i++) {
+        prefactors[i]=prefactors_t[i];
     }
     setk2s();
-    cout << "LaplaceNFEq Solver has been set!" <<endl;
 };
 
 
@@ -87,7 +80,7 @@ void LaplaceNFEqSolver::setk2s() {
             int idx=i*Nx+j;
 	    k2s_host[idx]=prefactors[0];
 	    for (int k=1; k<=max_power; k++) {
-	      k2s_host[idx]=k2s_host[idx]+pow(-kx*kx-ky*ky, k);
+	      k2s_host[idx]=k2s_host[idx]+prefactors[k]*pow(-kx*kx-ky*ky, k);
 	    }
         }
     }
@@ -106,8 +99,6 @@ void LaplaceNFEqSolver::solveLaplaceNFEq (double* phi, double* f) {
     int Ny=(*mesh_ptr).host.grid_number.y;
     int Nbx=(*mesh_ptr).host.grid_number_boun.x;
     int Nby=(*mesh_ptr).host.grid_number_boun.y;
-    double dx=(*mesh_ptr).host.grid_size.x;
-    double dy=(*mesh_ptr).host.grid_size.y;
 
     // Assign f to the real part of phi_complex
     solveLaplaceNFEqCoreGPU<<<Ny,Nx>>>(phi_complex, phi, f, k2s_dev, Nx, Ny, Nbx, Nby, 0);
@@ -119,7 +110,7 @@ void LaplaceNFEqSolver::solveLaplaceNFEq (double* phi, double* f) {
     cufftExecZ2Z(cufftPlan,phi_complex,phi_complex,CUFFT_INVERSE);
     // Assign the real part of phi_complex to phi
     solveLaplaceNFEqCoreGPU<<<Ny,Nx>>>(phi_complex, phi, f, k2s_dev, Nx, Ny, Nbx, Nby, 2);
-    applyBounCondPeriGPU(phi);
+    // applyBounCondPeriGPU(phi);    
 };
 
 

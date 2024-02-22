@@ -14,7 +14,7 @@
 #include <cufft.h>
 #include <cufftXt.h>
 #include "userDefinedFunction.h"
-#include "/home/you/Research/codes/PDESolver/src/evolver/evolverclass.cu"
+#include "../src/evolver/evolverclass.cu"
 
 using namespace std;
 
@@ -43,18 +43,28 @@ int main() {
     mySys.mesh_ptr=&mesh;
     
     // Creating fields.
-    Field f(&mesh, "f",0);    
-    LaplaceNFEqField phi(&mesh, "phi",1);
-    phi.setNLaplace(2);
+    Field f(&mesh, "f",0);
+    // Field phi(&mesh, "phi",1);
+    LaplaceNFEqField phi(&mesh, "phi");
+    double prefactors[2]={2,10};
+    phi.setLaplaceNFEq(1,prefactors);
+    cout <<phi.LaplNFEqSolver.max_power<<endl;
+    cout <<phi.LaplNFEqSolver.prefactors[0]<<", "<<phi.LaplNFEqSolver.prefactors[1]<<endl;
+    cout <<phi.specialty<<endl;
+    cout <<phi.traits_host.priority<<endl;
+    // LaplaceNFEqSolver LaplNFEqSolver;
+    // LaplNFEqSolver.initLaplaceNFEqSolver(&mesh);
     
     f.setRhsTerms({
         {{{&f}}}
     });
+    
     phi.setRhsTerms({
         {{{&f}}}
-    });    
+    });
     
     f.initFieldGaus(L/2, 0.1*L, 1.5);
+    
     // phi.initFieldGaus(L/2, 0.1*L, 1.5);
     mySys.addField(&f);
     mySys.addField(&phi);
@@ -67,6 +77,12 @@ int main() {
     // evolver.initEvolver();
     // Running simulations
     evolver.run();
+
+    phi.export_conf("1000", device);
+    f.export_conf("1000", device);
+    phi.LaplNFEqSolver.solveLaplaceNFEq(phi.f[0],f.f[0]);
+    phi.export_conf("1001", device);
+    f.export_conf("1001", device);
     // phi.export_conf_any(phi.phi_complex[3], "phi_rhs", "3", "gpu", 1);
     // evolver.getRHS(0);
     // f.export_conf("0","gpu");

@@ -15,6 +15,7 @@ using namespace std;
 
 // =============================================================
 // Constructors
+// -------------------------------------------------------------
 IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t) {
     traits_host.mesh_ptr=mesh_ptr_t;
     traits_host.name=name_t;
@@ -23,7 +24,7 @@ IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t) {
     traits_host.init_cond = "sin";
     traits_host.location = "both";
     traits_host.expo_data = "on";    
-    initFieldAddi();
+    setOmegaField (mesh_ptr_t, 1);
 };
 
 
@@ -35,7 +36,7 @@ IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t, int
     traits_host.boun_cond = "periodic";
     traits_host.init_cond = "sin";
     traits_host.expo_data = "on";
-    initFieldAddi();
+    setOmegaField (mesh_ptr_t, 1);
 };
 
 
@@ -47,7 +48,7 @@ IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t, int
     traits_host.boun_cond = "periodic";
     traits_host.init_cond = init_cond_t;
     traits_host.expo_data = "on";
-    initFieldAddi ();
+    setOmegaField (mesh_ptr_t, 1);
 };
 
 
@@ -59,17 +60,17 @@ IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t, int
     traits_host.boun_cond = boun_cond_t;
     traits_host.init_cond = init_cond_t;
     traits_host.expo_data = expo_data_t;
-    initFieldAddi ();
+    setOmegaField (mesh_ptr_t, 1);
 };
 
 
 // -------------------------------------------------------------
-void IncompFlowFricField::initFieldAddi () {
+void IncompFlowOmegaField::setOmegaField (Mesh* mesh_ptr, int omegaEqMode_t) {
     // Empty constructor requires specifying mesh before initialization.
     LaplSolverW2Phi.mesh_ptr=traits_host.mesh_ptr;
     // Initiate a Poisson solver
     LaplSolverW2Phi.initLaplaceNFSolver();
-
+    
     // Customize solver for Frictional-Stokes equation
     // The solver solves the Stokes equation by default
     LaplSolverW.mesh_ptr=traits_host.mesh_ptr;
@@ -80,11 +81,18 @@ void IncompFlowFricField::initFieldAddi () {
 
 
 // -------------------------------------------------------------
-void IncompFlowFricField::setStokesFricSolver (double Gamma, double eta) {
-  
+void IncompFlowFricField::setGammaEta (double gamma_t, double eta_t) {  
     // Initiate a Poisson solver
-    LaplSolverW.setSolver(1, {Gamma, eta});
+    gamma=gamma_t;
+    eta=eta_t;
+    LaplSolverW.setSolver(1, {gamma, eta});
 };
+
+
+// -------------------------------------------------------------
+void IncompFlowOmegaField::getOmegaAddi() {
+    
+}
 
 
 // -------------------------------------------------------------

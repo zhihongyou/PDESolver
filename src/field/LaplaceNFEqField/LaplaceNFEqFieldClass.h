@@ -20,15 +20,13 @@ class LaplaceNFEqField :public Field {
     
 public:    
        
-    cufftDoubleComplex* phi_complex;
-    double** k2s_host=new double*[10];
-    double** k2s_dev=new double*[10];
-    double* prefactors=new double[10];
+    LaplaceNFEqSolver LaplNFEqSolver;
     int max_power=1;
-    cufftHandle cufftPlan;
+    double* prefactors=new double[10];    
     
     // ===========================================================
     // Constructor
+    LaplaceNFEqField ();
     LaplaceNFEqField (Mesh* mesh_ptr_t, string name_t);
     LaplaceNFEqField (Mesh* mesh_ptr_t, string name_t, int priority_t);
     LaplaceNFEqField (Mesh* mesh_ptr_t, string name_t, int priority_t, string init_cond_t);
@@ -36,11 +34,8 @@ public:
     
     // Methods
     void initFieldAddi ();
-    void initLaplaceNFSolver();    
+    void setLaplaceNFEq (int max_power_t, double* prefactors_t);
     void solveLaplaceNFEq (int i_field);
-    void getRHSAddi (int i_field);
-    void setNLaplace (int n_laplace_t);
-    void setk2s ();
     // ===========================================================
 };
 

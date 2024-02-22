@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 #include "../../mesh/meshclass.cpp"
+#include "LaplaceNFEqSolverClassGPU.cu"
 
 
 using namespace std; 
@@ -24,8 +25,8 @@ public:
     string name="LaplaceNFEqSolver";
     
     cufftDoubleComplex* phi_complex;
-    double** k2s_host=new double*[10];
-    double** k2s_dev=new double*[10];
+    double* k2s_host=NULL;
+    double* k2s_dev=NULL;
     double* prefactors=new double[10];
     int max_power=1;
     cufftHandle cufftPlan;
@@ -37,8 +38,8 @@ public:
     LaplaceNFEqSolver (Mesh* mesh_ptr_t, string name_t);
     
     // Methods
-    void initLaplaceNFSolver();
-    void setSolver (int max_power_t, double* prefactors_t)
+    void initLaplaceNFEqSolver(Mesh* mesh_ptr_t);
+    void setLaplaceNFEqSolver(int max_power_t, double* prefactors_t);
     void setk2s ();
     void solveLaplaceNFEq (double* phi, double* f);
     // ===========================================================

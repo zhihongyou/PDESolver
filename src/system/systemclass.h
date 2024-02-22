@@ -3,9 +3,11 @@
 #include <iostream> 
 #include <vector>
 #include <string>
-#include "../field/fieldclass.cu"
-#include "../field/IncompFlow/IncompFlowClass.cu"
-#include "../field/constant-field/constantfieldclass.cu"
+#include "../field/fieldClassHeaders.h"
+// #include "../field/fieldclass.cu"
+// #include "../field/IncompFlow/IncompFlowClass.cu"
+// #include "../field/constant-field/constantfieldclass.cu"
+// #include "../field/LaplaceNFEqField/LaplaceNFEqFieldClass.cu"
 
 using namespace std; 
 

@@ -28,7 +28,7 @@
 #include <iostream> 
 #include <vector>
 #include <string>
-#include "../utility/vector3class.h"
+#include "../utility/Vector3/vector3class.h"
 
 #define real double
 #define Pi 3.1415926535897932384626433832795

@@ -5,9 +5,8 @@
 #include <string>
 #include <time.h>
 #include "../system/systemclass.cpp"
-#include "../field/LaplaceNFEqField/LaplaceNFEqFieldClass.cu"
-#include "../field/IncompFlow/IncompFlowClass.cu"
-#include "../field/constant-field/constantfieldclass.cu"
+#include "../field/fieldClassHeaders.h"
+
 
 using namespace std;
 
