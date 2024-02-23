@@ -68,9 +68,9 @@ void IncompFlow::initFields () {
         setFieldProperties(&vy, name+".vy",-1, init_cond);    
         setFieldProperties(&phi, name+".phi",-1, "sin");
     } else {
-        setFieldProperties(&vx, name+".vx",priority, init_cond);
-        setFieldProperties(&vy, name+".vy",priority, init_cond);
-        setFieldProperties(&phi, name+".phi",priority, "sin");
+        setFieldProperties(&vx, name+".vx",-1, init_cond);
+        setFieldProperties(&vy, name+".vy",-1, init_cond);
+        setFieldProperties(&phi, name+".phi",-1, "sin");
     };
     // This can trigger calculating stream function and velocity after
     //   a new omega has been obtained
@@ -78,7 +78,8 @@ void IncompFlow::initFields () {
     omega.ptr_vx=&vx;
     omega.ptr_vy=&vy;
     omega.ptr_phi=&phi;
-    omega.setOmegaField(mesh_ptr, 1);
+    omega.initOmegaField();
+    
     // No RHS for vx, vy, phi, as they need special functions to get values
     vx.setRhsTerms({});
     vy.setRhsTerms({});
@@ -104,6 +105,15 @@ void IncompFlow::setFieldProperties (Field* field_ptr, string field_name, int pr
     for (int i=0; i<200; i++) {
         (*field_ptr).f_funcs_host[i]=NULL;
     };
+};
+
+
+// -------------------------------------------------------------
+void IncompFlow::setOmegaEq (int omegaEqType_t, double gamma_t, double eta_t) {
+    omegaEqType=omegaEqType_t;
+    gamma=gamma_t;
+    eta=eta_t;
+    omega.setOmegaEq(omegaEqType, gamma, eta);
 };
 
 

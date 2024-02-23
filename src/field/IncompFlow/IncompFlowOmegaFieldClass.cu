@@ -10,7 +10,6 @@
 #include "IncompFlowOmegaFieldClass.h"
 #include "IncompFlowOmegaFieldClassGPU.cu"
 
-
 using namespace std;
 
 // =============================================================
@@ -24,7 +23,7 @@ IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t) {
     traits_host.init_cond = "sin";
     traits_host.location = "both";
     traits_host.expo_data = "on";    
-    setOmegaField (mesh_ptr_t, 1);
+    initOmegaField ();
 };
 
 
@@ -36,7 +35,7 @@ IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t, int
     traits_host.boun_cond = "periodic";
     traits_host.init_cond = "sin";
     traits_host.expo_data = "on";
-    setOmegaField (mesh_ptr_t, 1);
+    initOmegaField ();
 };
 
 
@@ -48,7 +47,7 @@ IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t, int
     traits_host.boun_cond = "periodic";
     traits_host.init_cond = init_cond_t;
     traits_host.expo_data = "on";
-    setOmegaField (mesh_ptr_t, 1);
+    initOmegaField ();
 };
 
 
@@ -60,38 +59,45 @@ IncompFlowOmegaField::IncompFlowOmegaField (Mesh* mesh_ptr_t, string name_t, int
     traits_host.boun_cond = boun_cond_t;
     traits_host.init_cond = init_cond_t;
     traits_host.expo_data = expo_data_t;
-    setOmegaField (mesh_ptr_t, 1);
+    initOmegaField ();
 };
 
 
 // -------------------------------------------------------------
-void IncompFlowOmegaField::setOmegaField (Mesh* mesh_ptr, int omegaEqMode_t) {
+void IncompFlowOmegaField::initOmegaField() {
     // Empty constructor requires specifying mesh before initialization.
     LaplSolverW2Phi.mesh_ptr=traits_host.mesh_ptr;
     // Initiate a Poisson solver
-    LaplSolverW2Phi.initLaplaceNFSolver();
+    LaplSolverW2Phi.initLaplaceNFEqSolver(traits_host.mesh_ptr);
+    double prefactors_t[2]={0, -1};
+    LaplSolverW2Phi.setLaplaceNFEqSolver(1, prefactors_t);
     
     // Customize solver for Frictional-Stokes equation
     // The solver solves the Stokes equation by default
     LaplSolverW.mesh_ptr=traits_host.mesh_ptr;
     // Initiate a Poisson solver
-    LaplSolverW.initLaplaceNFSolver();
-    setStokesFricSolver (0, 1);
+    LaplSolverW.initLaplaceNFEqSolver(traits_host.mesh_ptr);
+    setOmegaEq(1, 0, 1);
 };
 
 
 // -------------------------------------------------------------
-void IncompFlowFricField::setGammaEta (double gamma_t, double eta_t) {  
+void IncompFlowOmegaField::setOmegaEq (int omegaEqType_t, double gamma_t, double eta_t) {
     // Initiate a Poisson solver
+    omegaEqType=omegaEqType_t;
     gamma=gamma_t;
     eta=eta_t;
-    LaplSolverW.setSolver(1, {gamma, eta});
+    double prefactors_t[2]={gamma, -1*eta};
+    LaplSolverW.setLaplaceNFEqSolver(1, prefactors_t);
 };
 
 
 // -------------------------------------------------------------
-void IncompFlowOmegaField::getOmegaAddi() {
-    
+void IncompFlowOmegaField::getOmegaAddi(int i_field) {
+    if (omegaEqType>1) {
+        LaplSolverW.solveLaplaceNFEq(f[i_field],f[i_field]);
+    };
+    applyBounCondPeriGPU(f[i_field]);
 }
 
 
@@ -113,7 +119,7 @@ void IncompFlowOmegaField::getVelocity(int i_field) {
     FFuncType d1y=f_func_map_all_dev[{"d1y","CentralDifferenceO4Iso2D"}];
     FFuncArgs f_func_args(Nx, Ny, Nbx, Nby, dx, dy);
     // Get velocity from stream function
-    getIncompFlowVCoreGPU<<<Ny,Nx>>>((*ptr_phi).f[i_field], (*ptr_vx).f[i_field], (*ptr_vy).f[i_field], d1x, d1y, f_func_args);
+    getIncompFlowPhi2VGPU<<<Ny,Nx>>>((*ptr_phi).f[i_field], (*ptr_vx).f[i_field], (*ptr_vy).f[i_field], d1x, d1y, f_func_args);
     (*ptr_vx).applyBounCondPeriGPU((*ptr_vx).f[i_field]);
     (*ptr_vy).applyBounCondPeriGPU((*ptr_vy).f[i_field]);    
 };

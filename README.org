@@ -105,6 +105,28 @@
 **** Subclass symmTensorField
      
 **** Subclass antiSymmTensorField
+*** IncompFlow and IncompOmegaField
+    The two classes are constructed to solve different types of incompressible flow using the vortex-stream function method.
+
+    The equation for \omega can take one of the three forms:
+    1. The standard NSE: dt\omega=RHS or \omega=RHS.
+    2. The Stokes Eq: -\eta*\nabla=RHS.
+    3. The frictional Stokes Eq:
+            gammma*\omega-eta*Laplace(\omega)=RHS.
+	    
+    The default setting uses the 1st form. To enable the 2nd&3rd forms, simply set omegaEqType to 2, it will activate additional steps to calculate \omega field. Note that the priority of an IncompFlow instance has to be larger than 0 for the 2nd and 3rd forms.
+
+    To create an incompressible flow of the 1st form, simply use:
+    IncompFlow incompFlow(&mesh, "incompFlow", 0);
+    IncompFlow incompFlow(&mesh, "incompFlow", 1);
+    Then, you will need to specify the RHS of incompFlow.omega field.
+
+    To create an incompressible flow of the 2nd&3rd form, you should use:
+    IncompFlow incompFlow(&mesh, "incompFlow", 1);
+    In addition to that, you need to set gamma and eta with:
+    incompFlow.setOmegaEq(2,2,10);
+    Then, you will need to specify the RHS of incompFlow.omega field.
+    
 *** More specific subclasses
     These could be specific physical fields that have their very particular data structure or methods. For example, the vorticity field of an incompressible flow could be a child class of scalarField, but have its own methods to calculate the corresponding stream function and velocity field. The nematic tensor field is another example, which is a subclass of symmTensorField.
 ** Evolver class:

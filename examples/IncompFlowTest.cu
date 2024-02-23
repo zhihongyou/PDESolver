@@ -45,13 +45,16 @@ int main() {
     // Creating fields.
     Field f(&mesh, "f",0);
     // Field phi(&mesh, "phi",1);
-    LaplaceNFEqField phi(&mesh, "phi");
-    double prefactors[2]={2,10};
-    phi.setLaplaceNFEq(1,prefactors);
-    cout <<phi.LaplNFEqSolver.max_power<<endl;
-    cout <<phi.LaplNFEqSolver.prefactors[0]<<", "<<phi.LaplNFEqSolver.prefactors[1]<<endl;
-    cout <<phi.specialty<<endl;
-    cout <<phi.traits_host.priority<<endl;
+    IncompFlow incompFlow(&mesh, "incompFlow",1);
+    incompFlow.setOmegaEq(2,2,10);
+    // incompFlow.omega.setLaplaceNFEq(1,prefactors);
+    cout <<incompFlow.omega.omegaEqType <<", ";
+    cout <<incompFlow.omega.gamma <<", ";
+    cout <<incompFlow.omega.eta <<endl;
+    cout <<incompFlow.omega.omegaEqType <<", ";
+    cout <<incompFlow.omega.LaplSolverW.prefactors[0] <<", ";
+    cout <<incompFlow.omega.LaplSolverW.prefactors[1] <<endl;
+    
     // LaplaceNFEqSolver LaplNFEqSolver;
     // LaplNFEqSolver.initLaplaceNFEqSolver(&mesh);
     
@@ -59,7 +62,7 @@ int main() {
         {{{&f}}}
     });
     
-    phi.setRhsTerms({
+    incompFlow.omega.setRhsTerms({
         {{{&f}}}
     });
     
@@ -67,7 +70,7 @@ int main() {
     
     // phi.initFieldGaus(L/2, 0.1*L, 1.5);
     mySys.addField(&f);
-    mySys.addField(&phi);
+    mySys.addIncompFlow(&incompFlow);
     
     // Print system information.
     mySys.printSysInfo();
@@ -78,11 +81,11 @@ int main() {
     // Running simulations
     evolver.run();
 
-    phi.export_conf("1000", device);
-    f.export_conf("1000", device);
-    phi.LaplNFEqSolver.solveLaplaceNFEq(phi.f[0],f.f[0]);
-    phi.export_conf("1001", device);
-    f.export_conf("1001", device);
+    // phi.export_conf("1000", device);
+    // f.export_conf("1000", device);
+    // phi.LaplNFEqSolver.solveLaplaceNFEq(phi.f[0],f.f[0]);
+    // phi.export_conf("1001", device);
+    // f.export_conf("1001", device);
     // phi.export_conf_any(phi.phi_complex[3], "phi_rhs", "3", "gpu", 1);
     // evolver.getRHS(0);
     // f.export_conf("0","gpu");

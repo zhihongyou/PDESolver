@@ -79,6 +79,9 @@ void Evolver::getRHS(int i_field) {
             if ((*f_ptr_i).specialty=="LaplaceNFEqField") {
                 LaplaceNFEqField* f_ptr_temp = (LaplaceNFEqField*) f_ptr_i;
                 (*f_ptr_temp).solveLaplaceNFEq(i_field);
+            } else if ((*f_ptr_i).specialty=="IncompFlowOmega") {
+                IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
+                (*f_ptr_temp).getOmegaAddi(i_field);
             };
             // Apply periodic boundary condition.
             if (device=="cpu") {
@@ -89,7 +92,7 @@ void Evolver::getRHS(int i_field) {
             // Whenever omega is updated, get new velocity.
             if ((*f_ptr_i).specialty=="IncompFlowOmega") {
                 IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
-                (*f_ptr_temp).getVelocity(i_field);                
+                (*f_ptr_temp).getVelocity(i_field);
             };
         };        
     };
@@ -213,8 +216,8 @@ void Evolver::fieldsUpdate(int i_f_new, int i_f_old, int i_df, double time_step_
             };
             // Get velocity
             if ((*f_ptr_i).specialty=="IncompFlowOmega") {
-                // IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
-                // (*f_ptr_temp).getVelocity(i_f_new);
+                IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
+                (*f_ptr_temp).getVelocity(i_f_new);
             };
         };        
     };
