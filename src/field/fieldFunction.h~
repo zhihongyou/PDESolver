@@ -23,9 +23,6 @@ struct FFuncArgs {
     double f_func_arg1;
     double f_func_arg2;
     double f_func_arg3;
-    double* field2=NULL;
-    double* field3=NULL;
-    double* field4=NULL;
 
     FFuncArgs(){};
 
@@ -56,33 +53,6 @@ struct FFuncArgs {
     };
 };
 
-
-// ---------------------------------------------------------------------
-struct FFuncFieldAddiPtrs {
-    // Function can take additonal fields as arguments.
-    Field* f2_ptr=NULL;
-    Field* f3_ptr=NULL;
-    Field* f4_ptr=NULL;
-
-    FFuncFieldAddiPtrs() {};
-
-    FFuncFieldAddiPtrs(Field* f2_ptr1) {
-        f2_ptr=f2_ptr1;
-    };
-
-    FFuncFieldAddiPtrs(Field* f2_ptr1, Field* f3_ptr1) {
-      f2_ptr=f2_ptr1;
-      f3_ptr=f3_ptr1;
-    };
-
-  FFuncFieldAddiPtrs(Field* f2_ptr1, Field* f3_ptr1, Field* f4_ptr1) {
-      f2_ptr=f2_ptr1;
-      f3_ptr=f3_ptr1;
-      f4_ptr=f4_ptr1;
-    };
-};
-
-
 struct FFuncDef {
     // ******************************************************************
     // Struct used to construct a single function call to a field
@@ -93,7 +63,6 @@ struct FFuncDef {
     string f_operator;
     Field* field_ptr;
     FFuncArgs f_func_args;
-    FFuncFieldAddiPtrs f_func_fa_ptrs;
 
     FFuncDef (Field* field_ptr1) {
         f_operator="1";
@@ -109,14 +78,7 @@ struct FFuncDef {
         f_operator=f_operator1;
         field_ptr=field_ptr1;
         f_func_args=f_func_args1;
-    };
-
-    FFuncDef (string f_operator1, Field* field_ptr1, FFuncArgs f_func_args1, FFuncFieldAddiPtrs f_func_fa_ptrs1) {
-        f_operator=f_operator1;
-        field_ptr=field_ptr1;
-        f_func_args=f_func_args1;
-	f_func_fa_ptrs=f_func_fa_ptrs1;
-    };
+    };    
 };
 
 
@@ -179,14 +141,11 @@ using FFuncType =  double (*) (double*,int,FFuncArgs);
 map<pair<string,string>, FFuncType> f_func_map_all;
 map<pair<string,string>, FFuncType> f_func_map_all_dev;
 
-
-// ----------------------------------------------------------------------
 struct FFuncItem {
     string f_operator;
     int f_func_idx;
     FFuncType f_func;
     FFuncArgs f_func_args;
-    FFuncFieldAddiPtrs f_func_fa_ptrs;
 };
 
 

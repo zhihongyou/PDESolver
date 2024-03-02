@@ -56,7 +56,7 @@ public:
     void setOmegaEq (int omegaEqType_t, double gamma_t, double eta_t);
     void getOmegaAddi (int i_field);
     void getVelocity(int i_field);
-    void getIncompFlowVCoreCPU(int i_field, FFuncType d1x, FFuncType d1y, FFuncArgs f_func_args);
+    void getIncompFlowVCoreCPU(int i_field, FFuncType d1x, FFuncType d1y, FFuncArgs f_func_args);    
     
     // ===========================================================
 };

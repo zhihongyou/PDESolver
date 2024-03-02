@@ -156,7 +156,6 @@ void IncompFlow::setOmegaValues () {
     double dx=vx.gridSize().x;
     double dy=vx.gridSize().y;
     FFuncArgs f_func_args(Nx, Ny, Nbx, Nby, dx, dy);
-    FFuncFieldAddiPtrs f_func_fa_ptrs;
     FFuncType d1x=f_func_map_all[{"d1x","CentralDifferenceO4Iso2D"}];
     FFuncType d1y=f_func_map_all[{"d1y","CentralDifferenceO4Iso2D"}];
     

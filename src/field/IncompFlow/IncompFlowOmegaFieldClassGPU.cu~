@@ -15,8 +15,8 @@ __global__ void getIncompFlowPhi2VGPU(double* phi, double* vx, double* vy, FFunc
     int idx=(blockDim.x+2*f_func_args.Nbx)*(i+f_func_args.Nby)+j+f_func_args.Nbx;
 
     if (i<f_func_args.Ny && j<f_func_args.Nx) {
-      vx[idx] = d1y(phi,idx,f_func_args);
-      vy[idx] = -d1x(phi,idx,f_func_args);
+        vx[idx] = d1y(phi,idx,f_func_args);
+        vy[idx] = -d1x(phi,idx,f_func_args);
     };
 }
 

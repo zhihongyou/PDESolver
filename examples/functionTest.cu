@@ -14,7 +14,7 @@
 #include <cufft.h>
 #include <cufftXt.h>
 #include "userDefinedFunction.h"
-#include "/home/you/Research/codes/PDESolver/src/evolver/evolverclass.cu"
+#include "../src/evolver/evolverclass.cu"
 
 using namespace std;
 
@@ -44,19 +44,43 @@ int main() {
     
     // Creating fields.
     Field f(&mesh, "f",0);    
-    poissonEqField phi(&mesh, "phi",1);
+    Field phi(&mesh, "phi",1);
+    Field psi(&mesh, "psi",1);
+    Field aaa(&mesh, "aaa",1);
     
     f.setRhsTerms({
-        {{{&f}}}
+        {-1,{{&f}}}
     });
-    phi.setRhsTerms({
-        {{{&f}}}
-    });    
     
-    f.initFieldGaus(L/2, 0.1*L, 1.5);
+    phi.setRhsTerms({
+        {{{"sin",&f,{2,0}}}}
+    });
+
+    psi.setRhsTerms({
+        {{{"laplace",&f}}}
+    });
+
+    // FFuncFieldAddiPtrs fffap(&psi);
+    aaa.setRhsTerms({
+        {{{"atan2F",&f,{},{&psi}}}}
+    });
+    
+    f.initFieldGaus(L/2, 0.1*L, 0.1);
+    
     // phi.initFieldGaus(L/2, 0.1*L, 1.5);
     mySys.addField(&f);
     mySys.addField(&phi);
+    mySys.addField(&psi);
+    mySys.addField(&aaa);
+
+    if (aaa.rhs_terms[0].f_funcs[0].f_func_fa_ptrs.f2_ptr != NULL) {
+      cout <<"ptr="<<aaa.rhs_terms[0].f_funcs[0].f_func_fa_ptrs.f2_ptr;
+      cout <<", name="<<(*aaa.rhs_terms[0].f_funcs[0].f_func_fa_ptrs.f2_ptr).name()<<endl;
+    };
+    if (phi.rhs_terms[0].f_funcs[0].f_func_fa_ptrs.f2_ptr != NULL) {
+      cout <<"ptr="<<phi.rhs_terms[0].f_funcs[0].f_func_fa_ptrs.f2_ptr;
+      cout <<", name="<<(*phi.rhs_terms[0].f_funcs[0].f_func_fa_ptrs.f2_ptr).name()<<endl;
+    };    
     
     // Print system information.
     mySys.printSysInfo();
@@ -66,14 +90,6 @@ int main() {
     // evolver.initEvolver();
     // Running simulations
     evolver.run();
-    // phi.export_conf_any(phi.phi_complex[3], "phi_rhs", "3", "gpu", 1);
-    // evolver.getRHS(0);
-    // f.export_conf("0","gpu");
-    // phi.export_conf("0","gpu");
-    // -----------------------------------------------------------
-    // Testing
-    // evolver.initEvolver();
-    // evolver.getRHS(0);
     
     // -----------------------------------------------------------
     

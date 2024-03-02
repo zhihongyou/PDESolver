@@ -221,8 +221,7 @@ void Field::addFunctoRHS(FFuncDef f_func_i, string device, string func_scheme) {
     FFuncItem f_func_item;
     f_func_item.f_operator=f_func_i.f_operator;
     f_func_item.f_func_idx=num_f_funcs;
-    f_func_item.f_func_args=f_func_i.f_func_args;
-    f_func_item.f_func_fa_ptrs=f_func_i.f_func_fa_ptrs;
+    f_func_item.f_func_args=f_func_i.f_func_args;    
     
     if (device=="cpu") {
         // Allocate a memory to store the function field

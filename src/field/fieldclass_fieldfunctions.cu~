@@ -51,7 +51,7 @@ double* Field::getFFuncGPU(double* &f_func_ptr, int i_field, FFuncType f_func, F
     };
 
     if (get_new==1) {
-        allocField<double>(f_func_ptr, "gpu");	
+        allocField<double>(f_func_ptr, "gpu");
         int Nx=gridNumber().x;
         int Ny=gridNumber().y;
         int Nbx=gridNumberBoun().x;

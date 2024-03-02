@@ -87,7 +87,7 @@ void Field::initFieldGaus(double r_center, double r_decay, double gaus_amplitude
         for (int i=0; i<Nx; i++) {
             int idx=(j+Nby)*(Nx+2*Nbx)+i+Nbx;
             double r2=dx2*(i-0.5*Nx)*(i-0.5*Nx)+dy2*(j-0.5*Ny)*(j-0.5*Ny);
-            f_host[0][idx]=gaus_amplitude*(exp(-r2/rd2))+0.00000001*(randUR(rng)-0.5);
+            f_host[0][idx]=gaus_amplitude*(exp(-r2/rd2))+0.0001*(randUR(rng)-0.5);
         };
     };
     applyBounCondPeriCPU(f_host[0]);

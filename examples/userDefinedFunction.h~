@@ -18,8 +18,6 @@ CUDA_CALLABLE_MEMBER double getPressure(double * f, int idx, FFuncArgs f_func_ar
     }
     return func;
 };
-__device__ FFuncType getPressure_dev=getPressure;
-
 
 // ---------------------------------------------------------------
 CUDA_CALLABLE_MEMBER double oneOverPhi(double * f, int idx, FFuncArgs f_func_args) {
@@ -29,16 +27,12 @@ CUDA_CALLABLE_MEMBER double oneOverPhi(double * f, int idx, FFuncArgs f_func_arg
     }
     return func;
 };
-__device__ FFuncType oneOverPhi_dev=oneOverPhi;
-
 
 // ---------------------------------------------------------------
-CUDA_CALLABLE_MEMBER double atan2F(double * f, int idx, FFuncArgs f_func_args) {
+CUDA_CALLABLE_MEMBER double atanF(double * f, int idx, FFuncArgs f_func_args) {
    
-    return atan2(f[idx],f_func_args.field2[idx]);
+    return atan(f[idx]);
 };
-__device__ FFuncType atan2F_dev=atan2F;
-
 
 // ---------------------------------------------------------------
 CUDA_CALLABLE_MEMBER double toatan2F(double * f, int idx, FFuncArgs f_func_args) {
@@ -58,6 +52,13 @@ CUDA_CALLABLE_MEMBER double toatan2F(double * f, int idx, FFuncArgs f_func_args)
     }
     return theta;
 };
+
+
+// Define device functions========================================
+// ---------------------------------------------------------------
+__device__ FFuncType getPressure_dev=getPressure;
+__device__ FFuncType oneOverPhi_dev=oneOverPhi;
+__device__ FFuncType atanF_dev=atanF;
 __device__ FFuncType toatan2F_dev=toatan2F;
 
 
@@ -65,11 +66,11 @@ __device__ FFuncType toatan2F_dev=toatan2F;
 void addUserDefinedFuncs () {
     f_func_map_all[{"getPressure",""}]=getPressure;
     f_func_map_all[{"oneOverPhi",""}]=oneOverPhi;
-    f_func_map_all[{"atan2F",""}]=atan2F;
+    f_func_map_all[{"atanF",""}]=atanF;
     f_func_map_all[{"toatan2F",""}]=toatan2F;    
     f_func_map_all_dev[{"getPressure",""}]=getFFuncDevPtr(&getPressure_dev);
     f_func_map_all_dev[{"oneOverPhi",""}]=getFFuncDevPtr(&oneOverPhi_dev);
-    f_func_map_all_dev[{"atan2F",""}]=getFFuncDevPtr(&atan2F_dev);
+    f_func_map_all_dev[{"atanF",""}]=getFFuncDevPtr(&atanF_dev);
     f_func_map_all_dev[{"toatan2F",""}]=getFFuncDevPtr(&toatan2F_dev);    
 };
 
