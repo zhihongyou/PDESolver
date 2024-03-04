@@ -119,11 +119,21 @@ void Evolver::evalFieldFuncs(Field* f_ptr_i, int i_field) {
 
     for (int i=0; i<(*f_ptr_i).num_f_funcs; i++) {
         FFuncItem f_func_i=(*f_ptr_i).f_funcs_rhs[i];
-        
+	
+	if (f_func_i.f_func_fa_ptrs.f2_ptr != NULL) {
+	    f_func_i.f_func_args.field2=(*f_func_i.f_func_fa_ptrs.f2_ptr).f[i_field];
+	    if (f_func_i.f_func_fa_ptrs.f3_ptr != NULL) {
+	        f_func_i.f_func_args.field3=(*f_func_i.f_func_fa_ptrs.f3_ptr).f[i_field];
+	      	if (f_func_i.f_func_fa_ptrs.f4_ptr != NULL) {
+		    f_func_i.f_func_args.field4=(*f_func_i.f_func_fa_ptrs.f4_ptr).f[i_field];
+		};
+	    };
+	};	
+	            
         if (device=="cpu") {
-            (*f_ptr_i).getFFuncCPU((*f_ptr_i).f_funcs_host[f_func_i.f_func_idx], i_field, f_func_i.f_func, f_func_i.f_func_args, "new");            
+            (*f_ptr_i).getFFuncCPU((*f_ptr_i).f_funcs_host[f_func_i.f_func_idx], i_field, f_func_i.f_func, f_func_i.f_func_args, "new");
         } else if (device=="gpu") {
-            (*f_ptr_i).getFFuncGPU((*f_ptr_i).f_funcs_host[f_func_i.f_func_idx], i_field, f_func_i.f_func, f_func_i.f_func_args, "new");
+	  (*f_ptr_i).getFFuncGPU((*f_ptr_i).f_funcs_host[f_func_i.f_func_idx], i_field, f_func_i.f_func, f_func_i.f_func_args, "new");
         };
 
     }; 

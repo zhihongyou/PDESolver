@@ -21,9 +21,9 @@ void Evolver::run() {
     initEvolver();
     
     // Export initial configuration.
-    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
-        if ((*f_ptr_i).expoData() =="on") {
-            (*f_ptr_i).export_conf("init",device,0);
+    for (auto f_ptr_t : (*system_ptr).field_ptrs ) {
+        if ((*f_ptr_t).expoData() =="on") {
+            (*f_ptr_t).export_conf("init",device,0);
         };
     };
 
@@ -42,9 +42,9 @@ void Evolver::run() {
             // Export field configuration.
             int te=floor(time_now/time_export);    
             string str_t=to_string(te);
-            for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
-                if ((*f_ptr_i).expoData() =="on") {
-                    (*f_ptr_i).export_conf(str_t,device,0);
+            for (auto f_ptr_t : (*system_ptr).field_ptrs ) {
+                if ((*f_ptr_t).expoData() =="on") {
+                    (*f_ptr_t).export_conf(str_t,device,0);
                 };        
             };
             // Show progress of simulation.
@@ -66,48 +66,32 @@ void Evolver::run() {
 void Evolver::getRHS(int i_field) {
 
     // Evaluate field functions for priority<=0
-    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
-        if ((*f_ptr_i).priority()<=0) {
-            evalFieldFuncs(f_ptr_i,i_field);
+    for (auto f_ptr_t : (*system_ptr).field_ptrs ) {
+        if ((*f_ptr_t).priority()<=0) {
+            evalFieldFuncs(f_ptr_t,i_field);
         };
     };    
 
-    // Get new field values for those with priority>0
-    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
-        if ((*f_ptr_i).priority()>0) {
-            updateRHS(f_ptr_i,i_field);
-            if ((*f_ptr_i).specialty=="LaplaceNFEqField") {
-                LaplaceNFEqField* f_ptr_temp = (LaplaceNFEqField*) f_ptr_i;
-                (*f_ptr_temp).solveLaplaceNFEq(i_field);
-            } else if ((*f_ptr_i).specialty=="IncompFlowOmega") {
-                IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
-                (*f_ptr_temp).getOmegaAddi(i_field);
-            };
-            // Apply periodic boundary condition.
-            if (device=="cpu") {
-                (*f_ptr_i).applyBounCondPeriCPU((*f_ptr_i).f[i_field]);
-            } else if (device=="gpu"){
-                (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_field]);
-            };
-            // Whenever omega is updated, get new velocity.
-            if ((*f_ptr_i).specialty=="IncompFlowOmega") {
-                IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
-                (*f_ptr_temp).getVelocity(i_field);
-            };
+    // Get RHS for those with priority>0
+    for (auto f_ptr_t : (*system_ptr).field_ptrs ) {
+        if ((*f_ptr_t).priority()>0) {
+	    updateRHS(f_ptr_t,i_field);	    
         };        
     };
+    // Get new field values for those with priority>0
+    fieldsUpdate(1, i_field, i_field, i_field, time_step);
 
     // Evaluate field functions for priority>0 fields
-    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
-        if ((*f_ptr_i).priority()>0) {
-            evalFieldFuncs(f_ptr_i,i_field);
+    for (auto f_ptr_t : (*system_ptr).field_ptrs ) {        
+        if ((*f_ptr_t).priority()>0) {
+            evalFieldFuncs(f_ptr_t,i_field);
         };
     };
 
     // Update RHS of fields with priority=0
-    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
-        if ((*f_ptr_i).priority()==0) {
-            updateRHS(f_ptr_i,i_field);
+    for (auto f_ptr_t : (*system_ptr).field_ptrs ) {
+        if ((*f_ptr_t).priority()==0) {
+            updateRHS(f_ptr_t,i_field);
         };
     };
 
@@ -115,10 +99,10 @@ void Evolver::getRHS(int i_field) {
 
 
 // -------------------------------------------------------------
-void Evolver::evalFieldFuncs(Field* f_ptr_i, int i_field) {
+void Evolver::evalFieldFuncs(Field* f_ptr_t, int i_field) {
 
-    for (int i=0; i<(*f_ptr_i).num_f_funcs; i++) {
-        FFuncItem f_func_i=(*f_ptr_i).f_funcs_rhs[i];
+    for (int i=0; i<(*f_ptr_t).num_f_funcs; i++) {
+        FFuncItem f_func_i=(*f_ptr_t).f_funcs_rhs[i];
 	
 	if (f_func_i.f_func_fa_ptrs.f2_ptr != NULL) {
 	    f_func_i.f_func_args.field2=(*f_func_i.f_func_fa_ptrs.f2_ptr).f[i_field];
@@ -131,9 +115,9 @@ void Evolver::evalFieldFuncs(Field* f_ptr_i, int i_field) {
 	};	
 	            
         if (device=="cpu") {
-            (*f_ptr_i).getFFuncCPU((*f_ptr_i).f_funcs_host[f_func_i.f_func_idx], i_field, f_func_i.f_func, f_func_i.f_func_args, "new");
+            (*f_ptr_t).getFFuncCPU((*f_ptr_t).f_funcs_host[f_func_i.f_func_idx], i_field, f_func_i.f_func, f_func_i.f_func_args, "new");
         } else if (device=="gpu") {
-	  (*f_ptr_i).getFFuncGPU((*f_ptr_i).f_funcs_host[f_func_i.f_func_idx], i_field, f_func_i.f_func, f_func_i.f_func_args, "new");
+ 	    (*f_ptr_t).getFFuncGPU((*f_ptr_t).f_funcs_host[f_func_i.f_func_idx], i_field, f_func_i.f_func, f_func_i.f_func_args, "new");
         };
 
     }; 
@@ -150,27 +134,15 @@ void Evolver::updateRHS(Field* f_ptr_t, int i_field) {
     double* rhs_temp;
     double* lhs_temp;
     
-    if ((*f_ptr_t).priority() == 0) {
-        // Fields with time derivatives
-        rhs_temp=(*f_ptr_t).rhs[i_field];
-        lhs_temp=(*f_ptr_t).lhs[i_field];
-    } else {
-        // Fields without time derivative.
-        if (device == "cpu") {
-            rhs_temp=(*f_ptr_t).f[i_field];
-            lhs_temp=(*f_ptr_t).f[i_field];
-        } else if (device == "gpu") {
-            rhs_temp=(*f_ptr_t).f[i_field];
-            lhs_temp=(*f_ptr_t).f[i_field];
-        };
-    };    
-
+    rhs_temp=(*f_ptr_t).rhs[i_field];
+    lhs_temp=(*f_ptr_t).lhs[i_field];    
     (*f_ptr_t).allocField<double>(rhs_temp, device);
     (*f_ptr_t).allocField<double>(lhs_temp, device);    
     
     if (device=="cpu") {
         updateRHSCoreCPU((*f_ptr_t).rhs_ptrs_host, rhs_temp, lhs_temp, Nx, Ny, Nbx, Nby);
-    } else if (device=="gpu") {        
+    } else if (device=="gpu") {
+        // Get RHS
         updateRHSCoreGPU<<<Ny,Nx>>>((*f_ptr_t).rhs_ptrs_dev, rhs_temp, lhs_temp, Nx, Ny, Nbx, Nby);
     };
     
@@ -209,27 +181,16 @@ void Evolver::updateRHSCoreCPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs_t
 
 
 // --------------------------------------------------------------
-void Evolver::fieldsUpdate(int i_f_new, int i_f_old, int i_df, double time_step_t) {
+void Evolver::fieldsUpdate(int priority_t, int i_f_new, int i_f_old, int i_df, double time_step_t) {
     // Update fields with priority=0
-    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
-        if ((*f_ptr_i).priority() ==0) {
+    for (auto f_ptr_t : (*system_ptr).field_ptrs ) {
+        if ((*f_ptr_t).priority() == priority_t) {
             if (device=="cpu") {            
-                fieldUpdateCPU(f_ptr_i,i_f_new,i_f_old,i_df,time_step_t);
-                if ((*f_ptr_i).bounCond()=="periodic") {
-                    (*f_ptr_i).applyBounCondPeriCPU((*f_ptr_i).f[i_f_new]);
-                };
+  	        fieldUpdateCPU(f_ptr_t,i_f_new,i_f_old,i_df,time_step_t);                
             } else if (device=="gpu") {
-                fieldUpdateGPU(f_ptr_i,i_f_new,i_f_old,i_df,time_step_t);
-                if ((*f_ptr_i).bounCond()=="periodic") {
-                    (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_f_new]);
-                };
+	        fieldUpdateGPU(f_ptr_t,i_f_new,i_f_old,i_df,time_step_t);                
             };
-            // Get velocity
-            if ((*f_ptr_i).specialty=="IncompFlowOmega") {
-                IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
-                (*f_ptr_temp).getVelocity(i_f_new);
-            };
-        };        
+	}	
     };
 };
 
@@ -242,10 +203,17 @@ void Evolver::fieldUpdateCPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df,
     int Nby=(*f_ptr_t).gridNumberBoun().y;
     
     for (int j=0; j<Ny;j++) {
-        for (int i=0; i<Nx; i++) {        
+        for (int i=0; i<Nx; i++) {   
             int idx=(j+Nby)*(Nx+2*Nbx)+i+Nbx;
-            (*f_ptr_t).f[i_f_new][idx]=((*f_ptr_t).f[i_f_old][idx]+(*f_ptr_t).rhs[i_df][idx]*time_step_t)/(1+(*f_ptr_t).lhs[i_df][idx]*time_step_t);
-        };
+	    if ((*f_ptr_t).priority() == 0) {
+	      (*f_ptr_t).f[i_f_new][idx]=((*f_ptr_t).f[i_f_old][idx]+(*f_ptr_t).rhs[i_df][idx]*time_step_t)/(1+(*f_ptr_t).lhs[i_df][idx]*time_step_t);
+	    } else if ((*f_ptr_t).priority() > 0) {
+	      (*f_ptr_t).f[i_f_new][idx]=(*f_ptr_t).rhs[i_df][idx];
+	    };
+	};
+    };
+    if ((*f_ptr_t).bounCond()=="periodic") {
+      (*f_ptr_t).applyBounCondPeriCPU((*f_ptr_t).f[i_f_new]);
     };
 };
 
@@ -257,7 +225,35 @@ void Evolver::fieldUpdateGPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df,
     int Ny=(*f_ptr_t).gridNumber().y;
     int Nbx=(*f_ptr_t).gridNumberBoun().x;
     int Nby=(*f_ptr_t).gridNumberBoun().y;
-    fieldUpdateGPUCore<<<Ny,Nx>>>((*f_ptr_t).f[i_f_new], (*f_ptr_t).f[i_f_old], (*f_ptr_t).rhs[i_df], (*f_ptr_t).lhs[i_df], time_step_t, Nx, Ny, Nbx, Nby);
+    
+    // Get field values in the bulk
+    if ((*f_ptr_t).priority() == 0) {
+        fieldUpdatePrio0GPUCore<<<Ny,Nx>>>((*f_ptr_t).f[i_f_new], (*f_ptr_t).f[i_f_old], (*f_ptr_t).rhs[i_df], (*f_ptr_t).lhs[i_df], time_step_t, Nx, Ny, Nbx, Nby);
+    } else if ((*f_ptr_t).priority() > 0) {
+        fieldUpdatePrioPGPUCore<<<Ny,Nx>>>((*f_ptr_t).f[i_f_new], (*f_ptr_t).rhs[i_df], Nx, Ny, Nbx, Nby);
+    }
+
+    // Additional steps to get field values
+    if ((*f_ptr_t).specialty=="LaplaceNFEqField") {
+        LaplaceNFEqField* f_ptr_temp = (LaplaceNFEqField*) f_ptr_t;
+        (*f_ptr_temp).solveLaplaceNFEq(i_f_new);
+    } else if ((*f_ptr_t).specialty=="IncompFlowOmega") {
+        IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_t;
+	(*f_ptr_temp).getOmegaAddi(i_f_new);
+    };
+    
+    // Apply periodic boundary condition.
+    if (device=="cpu") {
+        (*f_ptr_t).applyBounCondPeriCPU((*f_ptr_t).f[i_f_new]);
+    } else if (device=="gpu"){
+        (*f_ptr_t).applyBounCondPeriGPU((*f_ptr_t).f[i_f_new]);
+    };
+    
+    // Whenever omega is updated, get new velocity.
+    if ((*f_ptr_t).specialty=="IncompFlowOmega") {
+        IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_t;
+        (*f_ptr_temp).getVelocity(i_f_new);
+    };
 };
 
 

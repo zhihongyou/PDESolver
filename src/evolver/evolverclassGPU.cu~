@@ -47,25 +47,13 @@ __global__ void updateRHSCoreGPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs
 
 
 // ----------------------------------------------------------------------
-__global__ void fieldUpdatePrio0GPUCore(double* f_new, double* f_old, double* f_rhs, double* f_lhs, double time_step_t, int Nx, int Ny, int Nbx, int Nby) {
+__global__ void fieldUpdateGPUCore(double* f_new, double* f_old, double* f_rhs, double* f_lhs, double time_step_t, int Nx, int Ny, int Nbx, int Nby) {
     int i=threadIdx.x;
     int j=blockIdx.x;    
     int idx=(blockDim.x+2*Nbx)*(j+Nby)+i+Nbx;
     
     if (i<Nx && j<Ny) {
         f_new[idx]=(f_old[idx]+f_rhs[idx]*time_step_t)/(1+f_lhs[idx]*time_step_t);
-    };
-};
-
-
-// ----------------------------------------------------------------------
-__global__ void fieldUpdatePrioPGPUCore(double* f_new, double* f_rhs, int Nx, int Ny, int Nbx, int Nby) {
-    int i=threadIdx.x;
-    int j=blockIdx.x;    
-    int idx=(blockDim.x+2*Nbx)*(j+Nby)+i+Nbx;
-    
-    if (i<Nx && j<Ny) {
-        f_new[idx]=f_rhs[idx];
     };
 };
 
