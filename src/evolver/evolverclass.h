@@ -70,7 +70,7 @@ public:
     void evalFieldFuncs(Field* f_ptr_t, int i_field);    
     void updateRHS(Field* f_ptr_t, int i_field);
     void updateRHSCoreCPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs_temp, int Nx, int Ny, int Nbx, int Nby);
-    void fieldsUpdate(int priority_t, int i_f_new, int i_f_old, int i_df, double time_step_t);
+    void fieldsUpdate(int i_f_new, int i_f_old, int i_df, double time_step_t);
     void fieldUpdateCPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t);
     void fieldUpdateGPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df, double time_step_t);
     void showProgress();
