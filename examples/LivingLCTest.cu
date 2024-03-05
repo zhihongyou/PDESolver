@@ -45,8 +45,8 @@ int main() {
     // Creating fields.
     LivingLC livingLC(&mesh, "livingLC", 0);    
     Field phi(&mesh, "phi",1);
-    livingLC.Pxx.initFieldSin(0.1, 2, 0);
-    livingLC.Pxy.initFieldSin(0.2, 4, 0);
+    livingLC.Pxx.initFieldSin(0.5, 2, 0);
+    livingLC.Pxy.initFieldSin(0.3, 4, 0);
     
     livingLC.Pxx.setRhsTerms({
         {-1,{{&livingLC.Pxx}}}

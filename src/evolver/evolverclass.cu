@@ -72,34 +72,9 @@ void Evolver::getRHS(int i_field) {
         };
     };    
 
-    // Get new field values for those with priority>0
-    for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
-        if ((*f_ptr_i).priority()>0) {
-            updateRHS(f_ptr_i,i_field);
-            if ((*f_ptr_i).specialty=="LaplaceNFEqField") {
-                LaplaceNFEqField* f_ptr_temp = (LaplaceNFEqField*) f_ptr_i;
-                (*f_ptr_temp).solveLaplaceNFEq(i_field);
-            } else if ((*f_ptr_i).specialty=="IncompFlowOmega") {
-                IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
-                (*f_ptr_temp).getOmegaAddi(i_field);
-	    } else if ((*f_ptr_i).specialty=="LivingLCPolar") {
-                LivingLCPolarField* f_ptr_temp = (LivingLCPolarField*) f_ptr_i;
-                (*f_ptr_temp).postProcessing(i_field);
-            };
-            // Apply periodic boundary condition.
-            if (device=="cpu") {
-                (*f_ptr_i).applyBounCondPeriCPU((*f_ptr_i).f[i_field]);
-            } else if (device=="gpu"){
-                (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_field]);
-            };
-            // Whenever omega is updated, get new velocity.
-            if ((*f_ptr_i).specialty=="IncompFlowOmega") {
-                IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
-                (*f_ptr_temp).getVelocity(i_field);
-            };
-        };        
-    };
-
+    // Update fields with priority 1
+    fieldsUpdate(1, i_field, i_field, i_field, 0);
+    
     // Evaluate field functions for priority>0 fields
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {        
         if ((*f_ptr_i).priority()>0) {
@@ -212,30 +187,15 @@ void Evolver::updateRHSCoreCPU(rhsPtrs rhs_ptrs, double* rhs_temp, double* lhs_t
 
 
 // --------------------------------------------------------------
-void Evolver::fieldsUpdate(int i_f_new, int i_f_old, int i_df, double time_step_t) {
+void Evolver::fieldsUpdate(int priority_t, int i_f_new, int i_f_old, int i_df, double time_step_t) {
     // Update fields with priority=0
     for (auto f_ptr_i : (*system_ptr).field_ptrs ) {
-        if ((*f_ptr_i).priority() ==0) {
+        if ((*f_ptr_i).priority() == priority_t) {
             if (device=="cpu") {            
                 fieldUpdateCPU(f_ptr_i,i_f_new,i_f_old,i_df,time_step_t);
-                if ((*f_ptr_i).bounCond()=="periodic") {
-                    (*f_ptr_i).applyBounCondPeriCPU((*f_ptr_i).f[i_f_new]);
-                };
-            } else if (device=="gpu") {
+            } else if (device=="gpu") {	        
                 fieldUpdateGPU(f_ptr_i,i_f_new,i_f_old,i_df,time_step_t);
-                if ((*f_ptr_i).bounCond()=="periodic") {
-                    (*f_ptr_i).applyBounCondPeriGPU((*f_ptr_i).f[i_f_new]);
-                };
-            };
-            // Get velocity
-            if ((*f_ptr_i).specialty=="IncompFlowOmega") {
-                IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
-                (*f_ptr_temp).getVelocity(i_f_new);
-	    } else if ((*f_ptr_i).specialty=="LivingLCPolar") {
-	      // cout <<"LivingLCPolar detected."<<endl;
-                LivingLCPolarField* f_ptr_temp = (LivingLCPolarField*) f_ptr_i;
-                (*f_ptr_temp).postProcessing(i_f_new);
-            };
+            };	  
         };        
     };
 };
@@ -264,7 +224,39 @@ void Evolver::fieldUpdateGPU(Field* f_ptr_t, int i_f_new, int i_f_old, int i_df,
     int Ny=(*f_ptr_t).gridNumber().y;
     int Nbx=(*f_ptr_t).gridNumberBoun().x;
     int Nby=(*f_ptr_t).gridNumberBoun().y;
-    fieldUpdateGPUCore<<<Ny,Nx>>>((*f_ptr_t).f[i_f_new], (*f_ptr_t).f[i_f_old], (*f_ptr_t).rhs[i_df], (*f_ptr_t).lhs[i_df], time_step_t, Nx, Ny, Nbx, Nby);
+    
+    // Preprocessing before updating fields, used for priority > 0
+    if ( (*f_ptr_t).priority() > 0 ) {
+      updateRHS(f_ptr_t,i_f_new);
+      if ((*f_ptr_t).specialty=="LaplaceNFEqField") {
+        LaplaceNFEqField* f_ptr_temp = (LaplaceNFEqField*) f_ptr_t;
+        (*f_ptr_temp).solveLaplaceNFEq(i_f_new);
+      } else if ((*f_ptr_t).specialty=="IncompFlowOmega") {
+        IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_t;
+        (*f_ptr_temp).getOmegaAddi(i_f_new);	    
+      };
+    };
+            
+    // Update fields
+    if ((*f_ptr_t).priority() == 0 ) {
+        fieldUpdatePrio0GPUCore<<<Ny,Nx>>>((*f_ptr_t).f[i_f_new], (*f_ptr_t).f[i_f_old], (*f_ptr_t).rhs[i_df], (*f_ptr_t).lhs[i_df], time_step_t, Nx, Ny, Nbx, Nby);
+    // } else if ((*f_ptr_t).priority() > 0 ) {
+        // fieldUpdatePrioPGPUCore<<<Ny,Nx>>>((*f_ptr_t).f[i_f_new], (*f_ptr_t).f[i_f_old], (*f_ptr_t).rhs[i_df], (*f_ptr_t).lhs[i_df], time_step_t, Nx, Ny, Nbx, Nby);
+    };
+
+    // Apply periodic boundary condition.
+    (*f_ptr_t).applyBounCondPeriGPU((*f_ptr_t).f[i_f_new]);
+    
+    // Postprocessing after field update.
+    if ((*f_ptr_t).specialty=="IncompFlowOmega") {
+        // Get velocity
+        IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_t;
+        (*f_ptr_temp).postProcessing(i_f_new);
+    } else if ((*f_ptr_t).specialty=="LivingLCPolar") {
+        // Get other fields
+        LivingLCPolarField* f_ptr_temp = (LivingLCPolarField*) f_ptr_t;
+        (*f_ptr_temp).postProcessing(i_f_new);
+    };
 };
 
 

@@ -31,7 +31,7 @@ __global__ void getLivingLCFlipGPU(double* theta_old, double* theta, double* fli
     int idx=(blockDim.x+2*Nbx)*(i+Nby)+j+Nbx;
 
     if (i<Ny && j<Nx) {
-      if (abs(theta_old[idx]-theta[idx]) > 0.78) {
+      if (abs(theta_old[idx]-theta[idx]) > 1.57) {
           flip[idx] = -1*flip[idx];
       };
     };

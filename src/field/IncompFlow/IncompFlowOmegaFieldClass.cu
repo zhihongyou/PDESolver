@@ -102,7 +102,7 @@ void IncompFlowOmegaField::getOmegaAddi(int i_field) {
 
 
 // -------------------------------------------------------------
-void IncompFlowOmegaField::getVelocity(int i_field) {
+void IncompFlowOmegaField::postProcessing(int i_field) {
     // Get velocity from vorticity field
     int Nx=gridNumber().x;
     int Ny=gridNumber().y;
