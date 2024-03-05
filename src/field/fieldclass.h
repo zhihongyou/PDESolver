@@ -125,7 +125,7 @@ class Field {
     // Field initialization    
     void initFieldAddi();
     // Constant field
-    void initFieldConst(double f_value);
+    void initFieldConst(double f_value, double f_dev);
     // Random field with uniform distribution
     void initFieldRandUnif(double f_mean, double f_var);
     // Random field with normal distribution

@@ -45,10 +45,10 @@ class System {
     // System ();
     // Print system information.
     void printSysInfo ();
+    void addField (Field* f_ptr_t);
     void addIncompFlow (IncompFlow* incompFlow_ptr_t);
     void addConstantField (ConstantField* constF_ptr_t);
-    void addField (Field* f_ptr_t);
-    
+    void addLivingLC (LivingLC* LivingLC_ptr_t);    
 };
 
 

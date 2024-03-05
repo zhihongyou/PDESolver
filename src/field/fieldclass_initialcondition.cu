@@ -58,7 +58,7 @@ void Field::initFieldImport(string str_t="0", int include_boun=0) {
 
 
 // --------------------------------------------------------------
-void Field::initFieldConst(double f_value) {    
+void Field::initFieldConst(double f_value, double f_dev=0.0000000000000001) {
     int Nx=gridNumber().x;
     int Ny=gridNumber().y;
     int Nbx=gridNumberBoun().x;
@@ -67,7 +67,7 @@ void Field::initFieldConst(double f_value) {
     for (int j=0; j<Ny; j++) {
         for (int i=0; i<Nx; i++) {
             int idx=(j+Nby)*(Nx+2*Nbx)+i+Nbx;
-            f_host[0][idx]=f_value+0.0001*(randUR(rng)-0.5);
+            f_host[0][idx]=f_value+f_dev*(randUR(rng)-0.5);
         };
     };
     applyBounCondPeriCPU(f_host[0]);

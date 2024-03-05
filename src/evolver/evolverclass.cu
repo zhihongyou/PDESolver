@@ -82,6 +82,9 @@ void Evolver::getRHS(int i_field) {
             } else if ((*f_ptr_i).specialty=="IncompFlowOmega") {
                 IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
                 (*f_ptr_temp).getOmegaAddi(i_field);
+	    } else if ((*f_ptr_i).specialty=="LivingLCPolar") {
+                LivingLCPolarField* f_ptr_temp = (LivingLCPolarField*) f_ptr_i;
+                (*f_ptr_temp).postProcessing(i_field);
             };
             // Apply periodic boundary condition.
             if (device=="cpu") {
@@ -228,6 +231,10 @@ void Evolver::fieldsUpdate(int i_f_new, int i_f_old, int i_df, double time_step_
             if ((*f_ptr_i).specialty=="IncompFlowOmega") {
                 IncompFlowOmegaField* f_ptr_temp = (IncompFlowOmegaField*) f_ptr_i;
                 (*f_ptr_temp).getVelocity(i_f_new);
+	    } else if ((*f_ptr_i).specialty=="LivingLCPolar") {
+	      // cout <<"LivingLCPolar detected."<<endl;
+                LivingLCPolarField* f_ptr_temp = (LivingLCPolarField*) f_ptr_i;
+                (*f_ptr_temp).postProcessing(i_f_new);
             };
         };        
     };

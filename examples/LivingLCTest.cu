@@ -43,35 +43,26 @@ int main() {
     mySys.mesh_ptr=&mesh;
     
     // Creating fields.
-    Field f(&mesh, "f",0);    
+    LivingLC livingLC(&mesh, "livingLC", 0);    
     Field phi(&mesh, "phi",1);
-    Field psi(&mesh, "psi",1);
-    Field aaa(&mesh, "aaa",1);
+    livingLC.Pxx.initFieldSin(0.1, 2, 0);
+    livingLC.Pxy.initFieldSin(0.2, 4, 0);
     
-    f.setRhsTerms({
-        {-1,{{&f}}}
+    livingLC.Pxx.setRhsTerms({
+        {-1,{{&livingLC.Pxx}}}
+    });
+
+    livingLC.Pxy.setRhsTerms({
+        {-1,{{&livingLC.Pxy}}}
     });
     
     phi.setRhsTerms({
-        {{{"sin",&f,{2,0}}}}
+        {{{"sin",&livingLC.Pxx,{2,0}}}}
     });
-
-    psi.setRhsTerms({
-        {{{"laplace",&f}}}
-    });
-
-    // FFuncFieldAddiPtrs fffap(&psi);
-    aaa.setRhsTerms({
-        {{{"atan2F",&f,{},{&psi}}}}
-    });
-    
-    f.initFieldGaus(L/2, 0.1*L, 0.1);
     
     // phi.initFieldGaus(L/2, 0.1*L, 1.5);
-    mySys.addField(&f);
+    mySys.addLivingLC(&livingLC);
     mySys.addField(&phi);
-    mySys.addField(&psi);
-    mySys.addField(&aaa);
     
     // Print system information.
     mySys.printSysInfo();
@@ -82,9 +73,9 @@ int main() {
     // Running simulations
     evolver.run();
 
-    f.export_conf_any(f.rhs[0], "f_rhs", "", device);
-    phi.export_conf_any(phi.rhs[0], "phi_rhs", "", device);
-    psi.export_conf_any(psi.rhs[0], "psi_rhs", "", device);
+    // f.export_conf_any(f.rhs[0], "f_rhs", "", device);
+    // phi.export_conf_any(phi.rhs[0], "phi_rhs", "", device);
+    // psi.export_conf_any(psi.rhs[0], "psi_rhs", "", device);
     
     // -----------------------------------------------------------
     

@@ -9,6 +9,7 @@
 #include "IncompFlow/IncompFlowClass.cu"
 #include "constant-field/constantfieldclass.cu"
 #include "LaplaceNFEqField/LaplaceNFEqFieldClass.cu"
+#include "LivingLC/LivingLCClass.cu"
 
 
 #endif

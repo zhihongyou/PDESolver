@@ -63,6 +63,13 @@ void System::printSysInfo () {
 
 
 // ------------------------------------------------------------
+void System::addField (Field* f_ptr_t) {    
+    field_ptrs.push_back(f_ptr_t);
+    (*f_ptr_t).traits_host.dire_expo=dire_expo;
+};
+
+
+// ------------------------------------------------------------
 void System::addIncompFlow (IncompFlow* incompFlow_ptr_t) {
     incompFlow_ptr=incompFlow_ptr_t;
     addField(&(*incompFlow_ptr).omega);
@@ -80,11 +87,15 @@ void System::addConstantField (ConstantField* constF_ptr_t) {
 };
 
 // ------------------------------------------------------------
-void System::addField (Field* f_ptr_t) {    
-    field_ptrs.push_back(f_ptr_t);
-    (*f_ptr_t).traits_host.dire_expo=dire_expo;
+void System::addLivingLC (LivingLC* LivingLC_ptr_t) {
+    addField(&(*LivingLC_ptr_t).Pxx);
+    addField(&(*LivingLC_ptr_t).Pxy);
+    addField(&(*LivingLC_ptr_t).theta);
+    addField(&(*LivingLC_ptr_t).theta_old);
+    addField(&(*LivingLC_ptr_t).px);
+    addField(&(*LivingLC_ptr_t).py);
+    addField(&(*LivingLC_ptr_t).flip);
 };
-
 // =======================================================================
 
 #endif
