@@ -62,6 +62,8 @@ LivingLC::LivingLC (Mesh* mesh_ptr_t, string name_t, int priority_t, string init
 
 // -------------------------------------------------------------
 void LivingLC::initFields () {
+    setFieldProperties(&cplus, name+".cplus", priority, init_cond);
+    setFieldProperties(&cminus, name+".cminus", priority, init_cond);
     setFieldProperties(&Pxx, name+".Pxx", priority, init_cond);
     setFieldProperties(&Pxy, name+".Pxy", priority, init_cond);
     setFieldProperties(&theta_old, name+".theta_old",-1, init_cond);
@@ -70,8 +72,10 @@ void LivingLC::initFields () {
     setFieldProperties(&py, name+".py",-1, "sin");
     setFieldProperties(&flip, name+".flip",-1, "sin");
     flip.initFieldConst(1, 0);
-    
+
     Pxy.specialty="LivingLCPolar";
+    Pxy.ptr_cplus=&cplus;
+    Pxy.ptr_cminus=&cminus;
     Pxy.ptr_Pxx=&Pxx;
     Pxy.ptr_theta_old=&theta_old;
     Pxy.ptr_theta=&theta;

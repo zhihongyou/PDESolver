@@ -27,6 +27,8 @@ class LivingLC {
     Mesh* mesh_ptr=NULL;
     string FDMScheme;
 
+    Field cplus;
+    Field cminus;
     Field Pxx;
     LivingLCPolarField Pxy;
     Field theta;

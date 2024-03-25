@@ -80,7 +80,11 @@ void LivingLCPolarField::postProcessing(int i_field) {
     double dy=gridSize().y;
 
     getLivingLCPxPyThetaGPU<<<Ny,Nx>>>((*ptr_Pxx).f[i_field], f[i_field], (*ptr_px).f[i_field], (*ptr_py).f[i_field], (*ptr_theta).f[i_field], (*ptr_theta_old).f[i_field], Nx, Ny, Nbx, Nby);
-    getLivingLCFlipGPU<<<Ny,Nx>>>((*ptr_theta_old).f[i_field], (*ptr_theta).f[i_field], (*ptr_flip).f[i_field], Nx, Ny, Nbx, Nby);
+    // Use flip field
+    // getLivingLCFlipGPU<<<Ny,Nx>>>((*ptr_theta_old).f[i_field], (*ptr_theta).f[i_field], (*ptr_flip).f[i_field], Nx, Ny, Nbx, Nby);
+    // Switch cplus and cminus
+    flipCpmLivingLCGPU<<<Ny,Nx>>>((*ptr_theta_old).f[i_field], (*ptr_theta).f[i_field], (*ptr_cplus).f[i_field], (*ptr_cminus).f[i_field], Nx, Ny, Nbx, Nby);
+    // (double* theta_old, double* theta, double* cplus, double* cminus, int Nx, int Ny, int Nbx, int Nby)
     (*ptr_px).applyBounCondPeriGPU((*ptr_px).f[i_field]);
     (*ptr_py).applyBounCondPeriGPU((*ptr_py).f[i_field]);
     (*ptr_theta).applyBounCondPeriGPU((*ptr_theta).f[i_field]);

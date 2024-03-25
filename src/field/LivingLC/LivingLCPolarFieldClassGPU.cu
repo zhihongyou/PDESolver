@@ -16,7 +16,7 @@ __global__ void getLivingLCPxPyThetaGPU(double* Pxx, double* Pxy, double* px, do
 
     if (i<Ny && j<Nx) {
       theta_old[idx] = theta[idx];
-      theta[idx] = atan2(Pxy[idx],Pxx[idx]);
+      theta[idx] = 0.5*atan2(Pxy[idx],Pxx[idx]);
       double p = 2*sqrt(Pxx[idx]*Pxx[idx]+Pxy[idx]*Pxy[idx]);
       px[idx] = p*cos(theta[idx]);
       py[idx] = p*sin(theta[idx]);
@@ -33,6 +33,22 @@ __global__ void getLivingLCFlipGPU(double* theta_old, double* theta, double* fli
     if (i<Ny && j<Nx) {
       if (abs(theta_old[idx]-theta[idx]) > 1.57) {
           flip[idx] = -1*flip[idx];
+      };
+    };
+}
+
+
+//================================================================
+__global__ void flipCpmLivingLCGPU(double* theta_old, double* theta, double* cplus, double* cminus, int Nx, int Ny, int Nbx, int Nby) {
+    int i=blockIdx.x;
+    int j=threadIdx.x;
+    int idx=(blockDim.x+2*Nbx)*(i+Nby)+j+Nbx;
+
+    if (i<Ny && j<Nx) {
+      if (abs(theta_old[idx]-theta[idx]) > 1.57) {
+  	  cminus=cminus[idx];
+	  cminus[idx]=cplus[idx];
+          cplus[idx] = cminus;	  
       };
     };
 }

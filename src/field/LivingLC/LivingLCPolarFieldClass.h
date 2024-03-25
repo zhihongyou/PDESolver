@@ -15,7 +15,9 @@ class LivingLCPolarField :public Field {
     
 public:
           
-    // ===========================================================
+    // ===========================================================    
+    Field* ptr_cplus;
+    Field* ptr_cminus;
     Field* ptr_Pxx;
     Field* ptr_theta;
     Field* ptr_theta_old;    
